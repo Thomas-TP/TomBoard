@@ -4,7 +4,12 @@ use uuid::Uuid;
 use std::fs;
 use std::io::{Read, Write};
 use std::process::Command;
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 use cpal::traits::{DeviceTrait, HostTrait};
+
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 use crate::audio::{AudioHandle, MicPassthroughHandle, build_mic_passthrough};
 use crate::storage::{self, AppData, Sound, Profile, Category, AppSettings};
@@ -142,6 +147,7 @@ pub async fn extract_audio_from_video(source_path: String) -> Result<String, Str
             "-y",
             &dest_path.to_string_lossy(),
         ])
+        .creation_flags(CREATE_NO_WINDOW)
         .output();
 
     match result {
@@ -175,6 +181,7 @@ throw "ffmpeg_not_found"
 
             let ps_result = Command::new("powershell")
                 .args(["-NoProfile", "-Command", &ps_script])
+                .creation_flags(CREATE_NO_WINDOW)
                 .output()
                 .map_err(|e| format!("PowerShell failed: {}", e))?;
 
@@ -238,6 +245,7 @@ $voices | ConvertTo-Json -Compress
 
     let output = Command::new("powershell")
         .args(["-NoProfile", "-Command", ps_script])
+        .creation_flags(CREATE_NO_WINDOW)
         .output()
         .map_err(|e| format!("PowerShell failed: {}", e))?;
 
@@ -381,6 +389,7 @@ $synth.Dispose()
 
         let output = Command::new("powershell")
             .args(["-NoProfile", "-Command", &ps_script])
+            .creation_flags(CREATE_NO_WINDOW)
             .output()
             .map_err(|e| format!("PowerShell failed: {}", e))?;
 
@@ -510,6 +519,7 @@ try {{
 
     let output = Command::new("powershell")
         .args(["-NoProfile", "-Command", &ps_script])
+        .creation_flags(CREATE_NO_WINDOW)
         .output()
         .map_err(|e| format!("PowerShell failed: {}", e))?;
 
@@ -549,6 +559,7 @@ pub async fn preview_library_sound(
 
     let output = Command::new("powershell")
         .args(["-NoProfile", "-Command", &ps_script])
+        .creation_flags(CREATE_NO_WINDOW)
         .output()
         .map_err(|e| format!("Download failed: {}", e))?;
 
@@ -590,6 +601,7 @@ pub async fn download_library_sound(
 
     let output = Command::new("powershell")
         .args(["-NoProfile", "-Command", &ps_script])
+        .creation_flags(CREATE_NO_WINDOW)
         .output()
         .map_err(|e| format!("Download failed: {}", e))?;
 
@@ -674,6 +686,7 @@ pub async fn install_virtual_cable() -> Result<String, String> {
                 zip_path.to_string_lossy()
             ),
         ])
+        .creation_flags(CREATE_NO_WINDOW)
         .status()
         .map_err(|e| format!("Failed to download: {}", e))?;
 
@@ -728,6 +741,7 @@ pub async fn install_virtual_cable() -> Result<String, String> {
                 setup_exe.to_string_lossy()
             ),
         ])
+        .creation_flags(CREATE_NO_WINDOW)
         .status()
         .map_err(|e| format!("Failed to launch installer: {}", e))?;
 
