@@ -1,7 +1,5 @@
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
-use rustfft::num_complex::Complex;
-use rustfft::FftPlanner;
 
 // ── Voice Effect Preset IDs ──
 
@@ -96,6 +94,17 @@ pub struct VoiceFxParams {
     /// Noise suppression (RNNoise) — works independently of voice preset
     #[serde(default)]
     pub noise_suppression: bool,
+    /// 5-band parametric EQ gains in dB (-12 to +12). Bands: 80, 250, 1000, 3500, 12000 Hz.
+    #[serde(default)]
+    pub eq_low: f32,
+    #[serde(default)]
+    pub eq_low_mid: f32,
+    #[serde(default)]
+    pub eq_mid: f32,
+    #[serde(default)]
+    pub eq_high_mid: f32,
+    #[serde(default)]
+    pub eq_high: f32,
 }
 
 impl Default for VoiceFxParams {
@@ -116,6 +125,11 @@ impl Default for VoiceFxParams {
             gate_threshold: 0.0,
             gain: 1.0,
             noise_suppression: false,
+            eq_low: 0.0,
+            eq_low_mid: 0.0,
+            eq_mid: 0.0,
+            eq_high_mid: 0.0,
+            eq_high: 0.0,
         }
     }
 }
@@ -255,225 +269,265 @@ impl VoiceFxParams {
     }
 }
 
-// ── DSP Processor ──
+// ── 5-Band Parametric EQ ──
+// Peaking EQ biquad filters (Audio EQ Cookbook by Robert Bristow-Johnson)
 
-// ── STFT Phase Vocoder Pitch Shifter ──
-// Based on the Bernsee smbPitchShift algorithm — high-quality STFT approach
-// with proper phase coherence (Laroche & Dolson).
+const EQ_BAND_COUNT: usize = 5;
+const EQ_FREQS: [f32; EQ_BAND_COUNT] = [80.0, 250.0, 1000.0, 3500.0, 12000.0];
+const EQ_DEFAULT_Q: f32 = 1.0;
 
-const FFT_SIZE: usize = 2048;
-const OVERLAP: usize = 4; // 75% overlap
-const STEP_SIZE: usize = FFT_SIZE / OVERLAP; // 512
-const HALF_PLUS_1: usize = FFT_SIZE / 2 + 1;
-
-struct StftPitchShifter {
-    sample_rate: f32,
-
-    // FIFO buffers
-    in_fifo: Vec<f32>,
-    out_fifo: Vec<f32>,
-    rover: usize,
-
-    // Phase vocoder state
-    last_phase: Vec<f32>,
-    sum_phase: Vec<f32>,
-
-    // Analysis/synthesis arrays
-    ana_magn: Vec<f32>,
-    ana_freq: Vec<f32>,
-    syn_magn: Vec<f32>,
-    syn_freq: Vec<f32>,
-
-    // Output overlap-add accumulation
-    output_accum: Vec<f32>,
-
-    // FFT engine
-    fft_forward: Arc<dyn rustfft::Fft<f32>>,
-    fft_inverse: Arc<dyn rustfft::Fft<f32>>,
-    fft_buf: Vec<Complex<f32>>,
-    fft_scratch: Vec<Complex<f32>>,
-
-    // Hann window (precomputed)
-    window: Vec<f32>,
+#[derive(Clone)]
+struct EqBand {
+    b0: f32,
+    b1: f32,
+    b2: f32,
+    a1: f32,
+    a2: f32,
+    z1: f32,
+    z2: f32,
 }
 
-impl StftPitchShifter {
-    fn new(sample_rate: f32) -> Self {
-        let mut planner = FftPlanner::<f32>::new();
-        let fft_forward = planner.plan_fft_forward(FFT_SIZE);
-        let fft_inverse = planner.plan_fft_inverse(FFT_SIZE);
-        let scratch_len = fft_forward
-            .get_inplace_scratch_len()
-            .max(fft_inverse.get_inplace_scratch_len());
+impl EqBand {
+    fn flat() -> Self {
+        Self { b0: 1.0, b1: 0.0, b2: 0.0, a1: 0.0, a2: 0.0, z1: 0.0, z2: 0.0 }
+    }
 
-        // Hann window
-        let window: Vec<f32> = (0..FFT_SIZE)
-            .map(|i| {
-                0.5 * (1.0
-                    - (2.0 * std::f32::consts::PI * i as f32 / FFT_SIZE as f32).cos())
-            })
-            .collect();
+    /// Calculate peaking EQ biquad coefficients.
+    fn calc_peaking(freq: f32, gain_db: f32, q: f32, sample_rate: f32) -> Self {
+        if gain_db.abs() < 0.01 {
+            return Self::flat();
+        }
+        let a = 10.0_f32.powf(gain_db / 40.0); // sqrt(10^(dB/20))
+        let w0 = 2.0 * std::f32::consts::PI * freq / sample_rate;
+        let cos_w0 = w0.cos();
+        let sin_w0 = w0.sin();
+        let alpha = sin_w0 / (2.0 * q);
 
-        let latency = FFT_SIZE - STEP_SIZE;
+        let b0 = 1.0 + alpha * a;
+        let b1 = -2.0 * cos_w0;
+        let b2 = 1.0 - alpha * a;
+        let a0 = 1.0 + alpha / a;
+        let a1 = -2.0 * cos_w0;
+        let a2 = 1.0 - alpha / a;
 
         Self {
-            sample_rate,
-            in_fifo: vec![0.0; FFT_SIZE],
-            out_fifo: vec![0.0; FFT_SIZE],
-            rover: latency,
-            last_phase: vec![0.0; HALF_PLUS_1],
-            sum_phase: vec![0.0; HALF_PLUS_1],
-            ana_magn: vec![0.0; HALF_PLUS_1],
-            ana_freq: vec![0.0; HALF_PLUS_1],
-            syn_magn: vec![0.0; HALF_PLUS_1],
-            syn_freq: vec![0.0; HALF_PLUS_1],
-            output_accum: vec![0.0; 2 * FFT_SIZE],
-            fft_forward,
-            fft_inverse,
-            fft_buf: vec![Complex::new(0.0, 0.0); FFT_SIZE],
-            fft_scratch: vec![Complex::new(0.0, 0.0); scratch_len],
-            window,
+            b0: b0 / a0,
+            b1: b1 / a0,
+            b2: b2 / a0,
+            a1: a1 / a0,
+            a2: a2 / a0,
+            z1: 0.0,
+            z2: 0.0,
+        }
+    }
+
+    /// Process a single sample through this biquad (Direct Form II Transposed).
+    #[inline]
+    fn process_sample(&mut self, input: f32) -> f32 {
+        let out = self.b0 * input + self.z1;
+        self.z1 = self.b1 * input - self.a1 * out + self.z2;
+        self.z2 = self.b2 * input - self.a2 * out;
+        out
+    }
+}
+
+// ── DSP Processor ──
+
+// ── TD-PSOLA Pitch Shifter with YIN Pitch Detection ──
+// Time-Domain Pitch Synchronous Overlap-Add: preserves vocal formants
+// for natural-sounding pitch shifting (unlike STFT which shifts formants).
+// Uses the YIN algorithm for robust monophonic pitch detection with
+// sub-sample accuracy via parabolic interpolation.
+
+const PSOLA_RING_SIZE: usize = 8192;
+const PSOLA_OLA_SIZE: usize = 8192;
+const PSOLA_MIN_F0: f32 = 60.0;
+const PSOLA_MAX_F0: f32 = 1000.0;
+const YIN_THRESHOLD: f32 = 0.15;
+const PSOLA_DETECT_INTERVAL: usize = 256;
+
+struct PsolaPitchShifter {
+    _sample_rate: f32,
+    min_period: usize,
+    max_period: usize,
+
+    // Circular input buffer
+    input: Vec<f32>,
+    in_pos: usize,
+
+    // OLA output ring buffer
+    ola: Vec<f32>,
+    ola_read: usize,
+    ola_write: usize,
+
+    // State
+    current_period: f32,
+    grain_timer: f32,
+    detect_timer: usize,
+
+    // Warmup / latency
+    latency: usize,
+    warmup: usize,
+}
+
+impl PsolaPitchShifter {
+    fn new(sample_rate: f32) -> Self {
+        let min_period = (sample_rate / PSOLA_MAX_F0).ceil() as usize;
+        let max_period = (sample_rate / PSOLA_MIN_F0).ceil() as usize;
+        let latency = max_period * 2;
+
+        Self {
+            _sample_rate: sample_rate,
+            min_period,
+            max_period,
+            input: vec![0.0; PSOLA_RING_SIZE],
+            in_pos: 0,
+            ola: vec![0.0; PSOLA_OLA_SIZE],
+            ola_read: 0,
+            ola_write: latency,
+            current_period: sample_rate / 150.0,
+            grain_timer: 0.0,
+            detect_timer: 0,
+            latency,
+            warmup: latency,
+        }
+    }
+
+    /// YIN pitch detection algorithm.
+    /// Returns detected period in samples, or None for unvoiced segments.
+    fn yin_detect(&self, center: usize) -> Option<f32> {
+        let w = self.max_period;
+
+        // Step 1: Difference function
+        let mut d = vec![0.0f32; self.max_period + 1];
+        for tau in 1..=self.max_period {
+            let mut sum = 0.0f32;
+            for j in 0..w {
+                let idx_a = (center + PSOLA_RING_SIZE - w + j) % PSOLA_RING_SIZE;
+                let idx_b = (center + PSOLA_RING_SIZE - w + j + tau) % PSOLA_RING_SIZE;
+                let diff = self.input[idx_a] - self.input[idx_b];
+                sum += diff * diff;
+            }
+            d[tau] = sum;
+        }
+
+        // Step 2: Cumulative mean normalized difference
+        let mut d_prime = vec![1.0f32; self.max_period + 1];
+        let mut running = 0.0f32;
+        for tau in 1..=self.max_period {
+            running += d[tau];
+            d_prime[tau] = if running > 1e-10 {
+                d[tau] * tau as f32 / running
+            } else {
+                1.0
+            };
+        }
+
+        // Step 3: Absolute threshold search with local minimum
+        let mut tau = self.min_period;
+        while tau <= self.max_period {
+            if d_prime[tau] < YIN_THRESHOLD {
+                // Walk to local minimum
+                while tau + 1 <= self.max_period && d_prime[tau + 1] < d_prime[tau] {
+                    tau += 1;
+                }
+                // Step 4: Parabolic interpolation for sub-sample accuracy
+                if tau > 1 && tau < self.max_period {
+                    let s0 = d_prime[tau - 1];
+                    let s1 = d_prime[tau];
+                    let s2 = d_prime[tau + 1];
+                    let denom = 2.0 * (s0 - 2.0 * s1 + s2);
+                    if denom.abs() > 1e-10 {
+                        return Some(tau as f32 + (s0 - s2) / denom);
+                    }
+                }
+                return Some(tau as f32);
+            }
+            tau += 1;
+        }
+
+        None // Unvoiced segment
+    }
+
+    /// Place a Hanning-windowed grain into the OLA buffer.
+    fn place_grain(&mut self, input_center: usize, period: usize) {
+        let grain_len = period * 2;
+        if grain_len == 0 || grain_len >= PSOLA_OLA_SIZE / 2 {
+            return;
+        }
+
+        for j in 0..grain_len {
+            let offset = j as isize - period as isize;
+
+            let in_idx = ((input_center as isize + offset)
+                .rem_euclid(PSOLA_RING_SIZE as isize)) as usize;
+
+            let ola_idx = ((self.ola_write as isize + offset)
+                .rem_euclid(PSOLA_OLA_SIZE as isize)) as usize;
+
+            // Hanning window
+            let w = 0.5
+                * (1.0
+                    - (2.0 * std::f32::consts::PI * j as f32 / grain_len as f32)
+                        .cos());
+
+            self.ola[ola_idx] += self.input[in_idx] * w;
         }
     }
 
     /// Process a buffer of samples in-place with the given pitch shift factor.
     /// pitch_factor = 2^(semitones/12). E.g. 1.0 = no shift, 2.0 = octave up.
     fn process(&mut self, data: &mut [f32], pitch_factor: f32) {
-        let latency = FFT_SIZE - STEP_SIZE;
-        let freq_per_bin = self.sample_rate / FFT_SIZE as f32;
-        let expected =
-            2.0 * std::f32::consts::PI * STEP_SIZE as f32 / FFT_SIZE as f32;
-
         for i in 0..data.len() {
-            // Feed sample into input FIFO
-            self.in_fifo[self.rover] = data[i];
-            // Read output (latency-compensated)
-            data[i] = self.out_fifo[self.rover - latency];
-            self.rover += 1;
+            // Store input into ring buffer
+            self.input[self.in_pos] = data[i];
+            self.in_pos = (self.in_pos + 1) % PSOLA_RING_SIZE;
 
-            // Process a complete STFT frame when FIFO is full
-            if self.rover >= FFT_SIZE {
-                self.rover = latency;
-
-                // ── ANALYSIS ──
-
-                // Window input and fill FFT buffer
-                for k in 0..FFT_SIZE {
-                    self.fft_buf[k] =
-                        Complex::new(self.in_fifo[k] * self.window[k], 0.0);
-                }
-
-                // Forward FFT
-                self.fft_forward
-                    .process_with_scratch(&mut self.fft_buf, &mut self.fft_scratch);
-
-                // Extract magnitude and true frequency for each bin
-                for k in 0..HALF_PLUS_1 {
-                    let re = self.fft_buf[k].re;
-                    let im = self.fft_buf[k].im;
-
-                    // Magnitude (2x for one-sided spectrum)
-                    let magn = 2.0 * (re * re + im * im).sqrt();
-                    let phase = im.atan2(re);
-
-                    // Phase difference from last frame
-                    let mut dp = phase - self.last_phase[k];
-                    self.last_phase[k] = phase;
-
-                    // Subtract expected phase advance for this bin
-                    dp -= k as f32 * expected;
-
-                    // Wrap to [-π, π]
-                    let mut qpd = (dp / std::f32::consts::PI) as i32;
-                    if qpd >= 0 {
-                        qpd += qpd & 1;
-                    } else {
-                        qpd -= qpd & 1;
-                    }
-                    dp -= std::f32::consts::PI * qpd as f32;
-
-                    // Get frequency deviation (in bins)
-                    let dp_bins = OVERLAP as f32 * dp / (2.0 * std::f32::consts::PI);
-
-                    // True frequency of this bin
-                    let true_freq = (k as f32 + dp_bins) * freq_per_bin;
-
-                    self.ana_magn[k] = magn;
-                    self.ana_freq[k] = true_freq;
-                }
-
-                // ── PITCH SHIFTING ──
-
-                self.syn_magn.fill(0.0);
-                self.syn_freq.fill(0.0);
-
-                for k in 0..HALF_PLUS_1 {
-                    let new_bin = (k as f32 * pitch_factor) as usize;
-                    if new_bin < HALF_PLUS_1 {
-                        self.syn_magn[new_bin] += self.ana_magn[k];
-                        self.syn_freq[new_bin] = self.ana_freq[k] * pitch_factor;
-                    }
-                }
-
-                // ── SYNTHESIS ──
-
-                for k in 0..HALF_PLUS_1 {
-                    let magn = self.syn_magn[k];
-                    let mut tmp = self.syn_freq[k];
-
-                    // Subtract bin mid frequency
-                    tmp -= k as f32 * freq_per_bin;
-
-                    // Convert frequency deviation to bin deviation
-                    tmp /= freq_per_bin;
-
-                    // Convert to phase delta (taking overlap into account)
-                    tmp = 2.0 * std::f32::consts::PI * tmp / OVERLAP as f32;
-
-                    // Add the expected phase advance for this bin
-                    tmp += k as f32 * expected;
-
-                    // Accumulate phase
-                    self.sum_phase[k] += tmp;
-                    let phase = self.sum_phase[k];
-
-                    // Reconstruct complex spectrum (positive frequencies)
-                    self.fft_buf[k] =
-                        Complex::new(magn * phase.cos(), magn * phase.sin());
-                }
-
-                // Mirror for conjugate symmetry (negative frequencies)
-                for k in (HALF_PLUS_1)..FFT_SIZE {
-                    self.fft_buf[k] = Complex::new(0.0, 0.0);
-                }
-
-                // Inverse FFT
-                self.fft_inverse
-                    .process_with_scratch(&mut self.fft_buf, &mut self.fft_scratch);
-
-                // Window and overlap-add
-                // Normalization: divide by (FFT_SIZE/2 * OVERLAP) to match Bernsee
-                let norm = 2.0 / (FFT_SIZE as f32 / 2.0 * OVERLAP as f32);
-                for k in 0..FFT_SIZE {
-                    self.output_accum[k] +=
-                        norm * self.window[k] * self.fft_buf[k].re;
-                }
-
-                // Move STEP_SIZE samples to output FIFO
-                for k in 0..STEP_SIZE {
-                    self.out_fifo[k] = self.output_accum[k];
-                }
-
-                // Shift output accumulation buffer
-                self.output_accum
-                    .copy_within(STEP_SIZE..(2 * FFT_SIZE), 0);
-                for k in (2 * FFT_SIZE - STEP_SIZE)..(2 * FFT_SIZE) {
-                    self.output_accum[k] = 0.0;
-                }
-
-                // Shift input FIFO
-                self.in_fifo.copy_within(STEP_SIZE..FFT_SIZE, 0);
+            // Warmup: accumulate input, output silence
+            if self.warmup > 0 {
+                self.warmup -= 1;
+                data[i] = 0.0;
+                continue;
             }
+
+            // Periodic pitch detection (YIN)
+            self.detect_timer += 1;
+            if self.detect_timer >= PSOLA_DETECT_INTERVAL {
+                self.detect_timer = 0;
+                let center =
+                    (self.in_pos + PSOLA_RING_SIZE - self.latency / 2) % PSOLA_RING_SIZE;
+                if let Some(p) = self.yin_detect(center) {
+                    // Smooth transition to avoid discontinuities
+                    self.current_period = self.current_period * 0.7 + p * 0.3;
+                }
+            }
+
+            // Grain synthesis: place a new grain every synth_period samples
+            self.grain_timer += 1.0;
+            let synth_period = (self.current_period / pitch_factor)
+                .max(self.min_period as f32)
+                .min(self.max_period as f32);
+
+            if self.grain_timer >= synth_period {
+                self.grain_timer -= synth_period;
+
+                let period = (self.current_period.round() as usize)
+                    .max(self.min_period)
+                    .min(self.max_period);
+                let center =
+                    (self.in_pos + PSOLA_RING_SIZE - self.latency) % PSOLA_RING_SIZE;
+
+                self.place_grain(center, period);
+
+                // Advance OLA write position by synthesis period
+                let advance = synth_period.round().max(1.0) as usize;
+                self.ola_write = (self.ola_write + advance) % PSOLA_OLA_SIZE;
+            }
+
+            // Read output from OLA buffer
+            data[i] = self.ola[self.ola_read];
+            self.ola[self.ola_read] = 0.0; // Clear after read
+            self.ola_read = (self.ola_read + 1) % PSOLA_OLA_SIZE;
         }
     }
 }
@@ -545,8 +599,8 @@ pub struct VoiceFxProcessor {
     sample_rate: f32,
     pub params: VoiceFxParams,
 
-    // STFT Phase Vocoder pitch shifter
-    pitch_shifter: StftPitchShifter,
+    // TD-PSOLA pitch shifter (formant-preserving)
+    pitch_shifter: PsolaPitchShifter,
 
     // RNNoise denoiser
     denoiser: NoiseProcessor,
@@ -586,6 +640,9 @@ pub struct VoiceFxProcessor {
 
     // Noise gate
     gate_env: f32,
+
+    // 5-band parametric EQ
+    eq_bands: [EqBand; EQ_BAND_COUNT],
 }
 
 impl VoiceFxProcessor {
@@ -623,7 +680,7 @@ impl VoiceFxProcessor {
             sample_rate,
             params: VoiceFxParams::default(),
 
-            pitch_shifter: StftPitchShifter::new(sample_rate),
+            pitch_shifter: PsolaPitchShifter::new(sample_rate),
             denoiser: NoiseProcessor::new(),
 
             comb_bufs,
@@ -655,6 +712,8 @@ impl VoiceFxProcessor {
             chorus_phases: [0.0, 0.33, 0.66],
 
             gate_env: 0.0,
+
+            eq_bands: std::array::from_fn(|_| EqBand::flat()),
         };
 
         proc.recalc_filters();
@@ -680,6 +739,19 @@ impl VoiceFxProcessor {
             .max(20.0)
             .min(self.sample_rate * 0.49);
         self.calc_highpass(hp_freq);
+
+        // Recalculate 5-band parametric EQ
+        let eq_gains = [
+            self.params.eq_low,
+            self.params.eq_low_mid,
+            self.params.eq_mid,
+            self.params.eq_high_mid,
+            self.params.eq_high,
+        ];
+        for i in 0..EQ_BAND_COUNT {
+            let freq = EQ_FREQS[i].min(self.sample_rate * 0.49);
+            self.eq_bands[i] = EqBand::calc_peaking(freq, eq_gains[i], EQ_DEFAULT_Q, self.sample_rate);
+        }
     }
 
     fn calc_lowpass(&mut self, freq: f32) {
@@ -798,6 +870,11 @@ impl VoiceFxProcessor {
                 self.hp_z2 = self.hp_z1;
                 self.hp_z1 = out;
                 s = out;
+            }
+
+            // 5-band parametric EQ
+            for band in self.eq_bands.iter_mut() {
+                s = band.process_sample(s);
             }
 
             // Chorus

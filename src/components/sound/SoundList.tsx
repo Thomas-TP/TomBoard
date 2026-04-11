@@ -19,6 +19,7 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppStore, useFilteredSounds } from '../../stores/appStore';
 import { Sound } from '../../types';
+import { useLazyBatch } from '../../hooks/useLazyBatch';
 
 interface SoundListProps {
   onContextMenu: (sound: Sound, position: { top: number; left: number }) => void;
@@ -27,6 +28,7 @@ interface SoundListProps {
 
 export default function SoundList({ onContextMenu, onEdit }: SoundListProps) {
   const sounds = useFilteredSounds();
+  const { visible, sentinelRef, hasMore } = useLazyBatch(sounds);
   const playSound = useAppStore(s => s.playSound);
   const toggleFavorite = useAppStore(s => s.toggleFavorite);
   const deleteSound = useAppStore(s => s.deleteSound);
@@ -61,7 +63,7 @@ export default function SoundList({ onContextMenu, onEdit }: SoundListProps) {
   return (
     <List sx={{ p: 1.5, overflow: 'auto' }}>
       <AnimatePresence mode="popLayout">
-      {sounds.map((sound, index) => {
+      {visible.map((sound, index) => {
         const isPlaying = playingIds.includes(sound.id);
         return (
           <motion.div
@@ -74,6 +76,7 @@ export default function SoundList({ onContextMenu, onEdit }: SoundListProps) {
           >
           <ListItemButton
             key={sound.id}
+            aria-label={`${isPlaying ? 'Arrêter' : 'Jouer'} ${sound.name}`}
             onClick={() => playSound(sound)}
             onDoubleClick={() => onEdit(sound)}
             onContextMenu={(e) => {
@@ -172,10 +175,12 @@ export default function SoundList({ onContextMenu, onEdit }: SoundListProps) {
               max={1}
               step={0.01}
               size="small"
+              aria-label={`Volume de ${sound.name}`}
               sx={{ width: 70, mx: 1 }}
             />
             <IconButton
               size="small"
+              aria-label={sound.isFavorite ? `Retirer ${sound.name} des favoris` : `Ajouter ${sound.name} aux favoris`}
               onClick={e => {
                 e.stopPropagation();
                 toggleFavorite(sound.id);
@@ -190,6 +195,7 @@ export default function SoundList({ onContextMenu, onEdit }: SoundListProps) {
             </IconButton>
             <IconButton
               size="small"
+              aria-label={`Supprimer ${sound.name}`}
               onClick={e => {
                 e.stopPropagation();
                 deleteSound(sound.id);
@@ -208,6 +214,7 @@ export default function SoundList({ onContextMenu, onEdit }: SoundListProps) {
         );
       })}
       </AnimatePresence>
+      {hasMore && <div ref={sentinelRef} style={{ height: 1 }} />}
     </List>
   );
 }

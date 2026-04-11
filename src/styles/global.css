@@ -58,6 +58,27 @@ body {
   border-radius: 4px;
 }
 
+/* Skip link for keyboard users */
+.skip-to-main {
+  position: absolute;
+  left: -9999px;
+  top: 4px;
+  z-index: 10000;
+  background: #7C5CFC;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+}
+
+.skip-to-main:focus {
+  left: 8px;
+}
+
 /* Selection */
 ::selection {
   background: rgba(124, 92, 252, 0.3);

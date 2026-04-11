@@ -23,6 +23,7 @@ import {
   PictureInPicture,
   LibraryMusic,
   CheckCircle,
+  History,
 } from '@mui/icons-material';
 import TomBoardLogo from '../TomBoardLogo';
 import { getCurrentWindow } from '@tauri-apps/api/window';
@@ -36,6 +37,7 @@ interface TitlebarProps {
   onSettingsClick: () => void;
   onOverlayClick: () => void;
   onVoiceChangerClick: () => void;
+  onChangelogClick: () => void;
 }
 
 export default function Titlebar({
@@ -44,6 +46,7 @@ export default function Titlebar({
   onSettingsClick,
   onOverlayClick,
   onVoiceChangerClick,
+  onChangelogClick,
 }: TitlebarProps) {
   const searchQuery = useAppStore(s => s.searchQuery);
   const setSearchQuery = useAppStore(s => s.setSearchQuery);
@@ -118,6 +121,7 @@ export default function Titlebar({
           placeholder="Rechercher un son..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
+          inputProps={{ 'aria-label': 'Rechercher un son', id: 'search-input' }}
           sx={{ flex: 1, fontSize: '0.78rem', py: 0.4, '& input::placeholder': { opacity: 0.45, fontSize: '0.78rem' } }}
         />
       </Box>
@@ -247,6 +251,12 @@ export default function Titlebar({
           </IconButton>
         </Tooltip>
 
+        <Tooltip title="Notes de version" arrow>
+          <IconButton onClick={onChangelogClick} size="small" sx={{ color: 'text.secondary', width: 30, height: 30, borderRadius: '8px' }}>
+            <History sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Tooltip>
+
         <Tooltip title="Paramètres" arrow>
           <IconButton data-tour="settings" onClick={onSettingsClick} size="small" sx={{ color: 'text.secondary', width: 30, height: 30, borderRadius: '8px' }}>
             <Settings sx={{ fontSize: 16 }} />
@@ -267,6 +277,7 @@ export default function Titlebar({
       >
         <IconButton
           size="small"
+          aria-label="Réduire"
           onClick={() => appWindow.minimize()}
           sx={{
             borderRadius: '8px',
@@ -280,6 +291,7 @@ export default function Titlebar({
         </IconButton>
         <IconButton
           size="small"
+          aria-label="Agrandir"
           onClick={() => appWindow.toggleMaximize()}
           sx={{
             borderRadius: '8px',
@@ -293,6 +305,7 @@ export default function Titlebar({
         </IconButton>
         <IconButton
           size="small"
+          aria-label="Fermer"
           onClick={() => appWindow.close()}
           sx={{
             borderRadius: '8px',

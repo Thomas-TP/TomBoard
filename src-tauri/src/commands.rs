@@ -27,9 +27,11 @@ pub fn play_sound(
     volume: f32,
     looping: bool,
     speed: Option<f32>,
+    fade_in: Option<f64>,
+    fade_out: Option<f64>,
     audio: State<AudioState>,
 ) -> Result<(), String> {
-    audio.0.play(&id, &file_path, volume, looping, speed.unwrap_or(1.0))
+    audio.0.play(&id, &file_path, volume, looping, speed.unwrap_or(1.0), fade_in.unwrap_or(0.0), fade_out.unwrap_or(0.0))
 }
 
 #[tauri::command]
@@ -432,6 +434,107 @@ $synth.Dispose()
         is_looping: false,
         trim_start: 0.0,
         trim_end: None,
+        fade_in: 0.0,
+        fade_out: 0.0,
+        added_at: chrono_now(),
+        play_count: 0,
+        order,
+    };
+
+    let profile_id = d.settings.active_profile_id.clone();
+    if let Some(profile) = d.profiles.iter_mut().find(|p| p.id == profile_id) {
+        profile.sounds.push(sound.clone());
+    }
+
+    storage::save_data(&d)?;
+    Ok(sound)
+}
+
+// ── Piper TTS ──
+
+#[tauri::command]
+pub fn check_piper(piper_path: String) -> Result<bool, String> {
+    let path = std::path::Path::new(&piper_path);
+    Ok(path.exists() && path.is_file())
+}
+
+#[tauri::command]
+pub async fn synthesize_piper(
+    text: String,
+    piper_path: String,
+    model_path: String,
+    data: State<'_, DataState>,
+) -> Result<Sound, String> {
+    if !std::path::Path::new(&piper_path).exists() {
+        return Err("piper.exe introuvable. Configurez le chemin dans les paramètres.".to_string());
+    }
+    if !std::path::Path::new(&model_path).exists() {
+        return Err("Modèle Piper introuvable. Configurez le chemin dans les paramètres.".to_string());
+    }
+
+    let sounds_dir = storage::get_sounds_dir();
+    let sound_id = Uuid::new_v4().to_string();
+    let dest_path = sounds_dir.join(format!("{}.wav", sound_id));
+    let dest_str = dest_path.to_string_lossy().to_string();
+
+    // Piper reads from stdin and writes WAV to --output_file
+    let mut child = Command::new(&piper_path)
+        .args(["--model", &model_path, "--output_file", &dest_str])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::piped())
+        .creation_flags(CREATE_NO_WINDOW)
+        .spawn()
+        .map_err(|e| format!("Piper launch failed: {}", e))?;
+
+    if let Some(mut stdin) = child.stdin.take() {
+        use std::io::Write;
+        stdin.write_all(text.as_bytes()).map_err(|e| format!("Stdin write failed: {}", e))?;
+        drop(stdin); // Close stdin to signal EOF
+    }
+
+    let output = child.wait_with_output().map_err(|e| format!("Piper failed: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Piper error: {}", stderr.trim()));
+    }
+
+    if !dest_path.exists() {
+        return Err("Piper n'a pas créé le fichier audio.".to_string());
+    }
+
+    let sound_name = if text.len() > 40 {
+        format!("{}...", &text[..40])
+    } else {
+        text.clone()
+    };
+
+    let mut d = data.0.lock().map_err(|e| e.to_string())?;
+    let order = d
+        .profiles
+        .iter()
+        .find(|p| p.id == d.settings.active_profile_id)
+        .map(|p| p.sounds.len() as u32)
+        .unwrap_or(0);
+
+    let sound = Sound {
+        id: sound_id,
+        name: sound_name,
+        file_path: dest_path.to_string_lossy().to_string(),
+        category: "all".to_string(),
+        tags: vec!["tts".to_string(), "piper".to_string()],
+        icon: "🤖".to_string(),
+        color: "#00897B".to_string(),
+        volume: 1.0,
+        speed: 1.0,
+        hotkey: None,
+        is_favorite: false,
+        is_looping: false,
+        trim_start: 0.0,
+        trim_end: None,
+        fade_in: 0.0,
+        fade_out: 0.0,
         added_at: chrono_now(),
         play_count: 0,
         order,
@@ -541,6 +644,90 @@ try {{
 }
 
 #[tauri::command]
+pub async fn search_freesound(
+    query: String,
+    api_key: String,
+) -> Result<Vec<LibrarySound>, String> {
+    if api_key.trim().is_empty() {
+        return Err("Clé API Freesound non configurée. Ajoutez-la dans les paramètres.".to_string());
+    }
+
+    let encoded = query.replace(' ', "+");
+    let url = if query.trim().is_empty() {
+        format!(
+            "https://freesound.org/apiv2/search/text/?query=*&sort=downloads_desc&page_size=30&fields=id,name,previews,duration,tags,description,username,num_downloads,avg_rating&token={}",
+            api_key.trim()
+        )
+    } else {
+        format!(
+            "https://freesound.org/apiv2/search/text/?query={}&page_size=30&fields=id,name,previews,duration,tags,description,username,num_downloads,avg_rating&token={}",
+            encoded, api_key.trim()
+        )
+    };
+
+    let ps_script = format!(
+        r#"
+try {{
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    $resp = Invoke-RestMethod -Uri '{}' -Method Get -TimeoutSec 15 -Headers @{{'User-Agent'='TomBoard/1.0'}}
+    $results = @()
+    foreach ($r in $resp.results) {{
+        $previewUrl = ''
+        $downloadUrl = ''
+        if ($r.previews) {{
+            if ($r.previews.'preview-hq-mp3') {{ $previewUrl = $r.previews.'preview-hq-mp3' }}
+            elseif ($r.previews.'preview-lq-mp3') {{ $previewUrl = $r.previews.'preview-lq-mp3' }}
+            $downloadUrl = $previewUrl
+        }}
+        $tags = @()
+        if ($r.tags) {{ $tags = @($r.tags | Select-Object -First 5) }}
+        $results += [PSCustomObject]@{{
+            id = [string]$r.id
+            name = $r.name
+            preview_url = $previewUrl
+            download_url = $downloadUrl
+            duration = if ($r.duration) {{ [double]$r.duration }} else {{ 0.0 }}
+            source = 'freesound'
+            tags = $tags
+            description = if ($r.description) {{ [string]$r.description.Substring(0, [Math]::Min(200, $r.description.Length)) }} else {{ '' }}
+            username = if ($r.username) {{ [string]$r.username }} else {{ '' }}
+            image_url = ''
+            num_downloads = if ($r.num_downloads) {{ [int64]$r.num_downloads }} else {{ 0 }}
+            avg_rating = if ($r.avg_rating) {{ [double]$r.avg_rating }} else {{ 0.0 }}
+        }}
+    }}
+    $results | ConvertTo-Json -Compress -Depth 5
+}} catch {{
+    throw "Freesound API error: $_"
+}}
+"#,
+        url.replace('\'', "''")
+    );
+
+    let output = Command::new("powershell")
+        .args(["-NoProfile", "-Command", &ps_script])
+        .creation_flags(CREATE_NO_WINDOW)
+        .output()
+        .map_err(|e| format!("PowerShell failed: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Freesound search failed: {}", stderr.trim()));
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let trimmed = stdout.trim();
+    if trimmed.is_empty() { return Ok(vec![]); }
+
+    if trimmed.starts_with('[') {
+        serde_json::from_str(trimmed).map_err(|e| format!("JSON parse: {}", e))
+    } else {
+        let single: LibrarySound = serde_json::from_str(trimmed).map_err(|e| format!("JSON parse: {}", e))?;
+        Ok(vec![single])
+    }
+}
+
+#[tauri::command]
 pub async fn preview_library_sound(
     url: String,
     audio: State<'_, AudioState>,
@@ -573,7 +760,7 @@ pub async fn preview_library_sound(
     }
 
     // Play via audio engine with special ID
-    audio.0.play("__library_preview__", &temp_path.to_string_lossy(), 1.0, false, 1.0)
+    audio.0.play("__library_preview__", &temp_path.to_string_lossy(), 1.0, false, 1.0, 0.0, 0.0)
 }
 
 #[tauri::command]
@@ -637,6 +824,8 @@ pub async fn download_library_sound(
         is_looping: false,
         trim_start: 0.0,
         trim_end: None,
+        fade_in: 0.0,
+        fade_out: 0.0,
         added_at: chrono_now(),
         play_count: 0,
         order,
@@ -764,6 +953,13 @@ pub fn get_data(data: State<DataState>) -> Result<AppData, String> {
 }
 
 #[tauri::command]
+pub fn set_data(data_payload: AppData, data: State<DataState>) -> Result<(), String> {
+    let mut d = data.0.lock().map_err(|e| e.to_string())?;
+    *d = data_payload;
+    storage::save_data(&d)
+}
+
+#[tauri::command]
 pub fn save_settings(settings: AppSettings, data: State<DataState>) -> Result<(), String> {
     let mut d = data.0.lock().map_err(|e| e.to_string())?;
     d.settings = settings;
@@ -815,12 +1011,13 @@ pub fn add_sound(
         is_looping: false,
         trim_start: 0.0,
         trim_end: None,
+        fade_in: 0.0,
+        fade_out: 0.0,
         added_at: chrono_now(),
         play_count: 0,
         order,
     };
 
-    // Add to active profile
     let profile_id = d.settings.active_profile_id.clone();
     if let Some(profile) = d.profiles.iter_mut().find(|p| p.id == profile_id) {
         profile.sounds.push(sound.clone());
@@ -828,6 +1025,18 @@ pub fn add_sound(
 
     storage::save_data(&d)?;
     Ok(sound)
+}
+
+#[tauri::command]
+pub fn import_audio_bytes(file_name: String, bytes: Vec<u8>) -> Result<String, String> {
+    let sounds_dir = storage::get_sounds_dir();
+    let src_path = std::path::Path::new(&file_name);
+    let extension = src_path.extension().and_then(|e| e.to_str()).unwrap_or("wav");
+    let sound_id = Uuid::new_v4().to_string();
+    let dest_filename = format!("{}.{}", sound_id, extension);
+    let dest_path = sounds_dir.join(&dest_filename);
+    fs::write(&dest_path, &bytes).map_err(|e| format!("Failed to write audio file: {}", e))?;
+    Ok(dest_path.to_string_lossy().to_string())
 }
 
 #[tauri::command]
@@ -1058,6 +1267,8 @@ pub fn save_recording(
         is_looping: false,
         trim_start: 0.0,
         trim_end: None,
+        fade_in: 0.0,
+        fade_out: 0.0,
         added_at: chrono_now(),
         play_count: 0,
         order,
@@ -1307,5 +1518,93 @@ pub fn download_and_apply_update() -> Result<(), String> {
         }
         _ => Err("Aucune mise à jour disponible.".to_string()),
     }
+}
+
+// ── Discord Rich Presence ──
+
+#[tauri::command]
+pub fn set_discord_rpc(enabled: bool) -> Result<(), String> {
+    crate::discord_rpc::set_enabled(enabled);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn update_discord_presence(detail: String, state: String) -> Result<(), String> {
+    crate::discord_rpc::update(detail, state);
+    Ok(())
+}
+
+// ── Trim Audio ──
+/// Applies trim_start and trim_end to a sound file, producing a new WAV
+/// at the same location (replaces in-place) or in a temp file.
+/// Returns the path of the trimmed file.
+#[tauri::command]
+pub fn trim_audio(
+    file_path: String,
+    trim_start: f64,
+    trim_end_opt: Option<f64>,
+) -> Result<String, String> {
+    use std::io::BufReader;
+    use rodio::Source;
+
+    let path = std::path::Path::new(&file_path);
+    let file = std::fs::File::open(path).map_err(|e| format!("Cannot open file: {}", e))?;
+    let reader = BufReader::new(file);
+
+    // Decode audio with rodio
+    let decoder = rodio::Decoder::new(reader).map_err(|e| format!("Decode error: {}", e))?;
+    let sample_rate = decoder.sample_rate();
+    let channels = decoder.channels() as usize;
+
+    let samples: Vec<i16> = decoder.collect();
+
+    let total_frames = samples.len() / channels;
+    let start_frame = (trim_start * sample_rate as f64).round() as usize;
+    let end_frame = trim_end_opt
+        .map(|t| (t * sample_rate as f64).round() as usize)
+        .unwrap_or(total_frames)
+        .min(total_frames);
+
+    if start_frame >= end_frame {
+        return Err("Trim invalide : start >= end".to_string());
+    }
+
+    let trimmed: Vec<i16> = samples[(start_frame * channels)..(end_frame * channels)].to_vec();
+
+    // Write trimmed audio to a new WAV file next to original (with _trimmed suffix)
+    let stem = path.file_stem().map(|s| s.to_string_lossy()).unwrap_or_default();
+    let out_name = format!("{}_trim.wav", stem);
+    let out_path = path.parent().unwrap_or(path).join(out_name);
+    let out_file = std::fs::File::create(&out_path).map_err(|e| format!("Cannot create output: {}", e))?;
+
+    write_wav(out_file, &trimmed, channels as u16, sample_rate)?;
+
+    Ok(out_path.to_string_lossy().to_string())
+}
+
+fn write_wav<W: Write>(mut w: W, samples: &[i16], channels: u16, sample_rate: u32) -> Result<(), String> {
+    let data_len = (samples.len() * 2) as u32;
+    let header_len: u32 = 44;
+
+    // RIFF
+    w.write_all(b"RIFF").map_err(|e| e.to_string())?;
+    w.write_all(&(header_len - 8 + data_len).to_le_bytes()).map_err(|e| e.to_string())?;
+    w.write_all(b"WAVE").map_err(|e| e.to_string())?;
+    // fmt
+    w.write_all(b"fmt ").map_err(|e| e.to_string())?;
+    w.write_all(&16u32.to_le_bytes()).map_err(|e| e.to_string())?;   // chunk size
+    w.write_all(&1u16.to_le_bytes()).map_err(|e| e.to_string())?;    // PCM
+    w.write_all(&channels.to_le_bytes()).map_err(|e| e.to_string())?;
+    w.write_all(&sample_rate.to_le_bytes()).map_err(|e| e.to_string())?;
+    w.write_all(&(sample_rate * channels as u32 * 2).to_le_bytes()).map_err(|e| e.to_string())?;
+    w.write_all(&(channels * 2).to_le_bytes()).map_err(|e| e.to_string())?;
+    w.write_all(&16u16.to_le_bytes()).map_err(|e| e.to_string())?;   // bits per sample
+    // data
+    w.write_all(b"data").map_err(|e| e.to_string())?;
+    w.write_all(&data_len.to_le_bytes()).map_err(|e| e.to_string())?;
+    for &s in samples {
+        w.write_all(&s.to_le_bytes()).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 

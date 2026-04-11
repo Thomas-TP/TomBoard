@@ -4,15 +4,18 @@ import SoundCard from './SoundCard';
 import { useFilteredSounds } from '../../stores/appStore';
 import { MusicOff } from '@mui/icons-material';
 import { Sound } from '../../types';
+import { useLazyBatch } from '../../hooks/useLazyBatch';
 
 interface SoundGridProps {
   onContextMenu: (sound: Sound, position: { top: number; left: number }) => void;
   onEdit: (sound: Sound) => void;
   dragActiveId?: string | null;
+  compact?: boolean;
 }
 
-export default function SoundGrid({ onContextMenu, onEdit, dragActiveId }: SoundGridProps) {
+export default function SoundGrid({ onContextMenu, onEdit, dragActiveId, compact }: SoundGridProps) {
   const sounds = useFilteredSounds();
+  const { visible, sentinelRef, hasMore } = useLazyBatch(sounds);
 
   if (sounds.length === 0) {
     return (
@@ -53,8 +56,10 @@ export default function SoundGrid({ onContextMenu, onEdit, dragActiveId }: Sound
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-          gap: 1.5,
+          gridTemplateColumns: compact
+            ? 'repeat(auto-fill, minmax(76px, 1fr))'
+            : 'repeat(auto-fill, minmax(130px, 1fr))',
+          gap: compact ? 0.75 : 1.5,
           px: 2,
           pt: 0.5,
           pb: 4,
@@ -62,16 +67,18 @@ export default function SoundGrid({ onContextMenu, onEdit, dragActiveId }: Sound
         }}
       >
         <AnimatePresence mode="popLayout">
-          {sounds.map(sound => (
+          {visible.map(sound => (
             <SoundCard
               key={sound.id}
               sound={sound}
               onContextMenu={onContextMenu}
               onEdit={onEdit}
               isDragActive={dragActiveId === sound.id}
+              compact={compact}
             />
           ))}
         </AnimatePresence>
+        {hasMore && <div ref={sentinelRef} style={{ height: 1 }} />}
       </Box>
   );
 }

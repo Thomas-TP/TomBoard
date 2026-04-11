@@ -1,5 +1,7 @@
 mod audio;
 mod commands;
+mod discord_rpc;
+mod http_api;
 mod storage;
 mod voice_fx;
 
@@ -19,6 +21,14 @@ pub fn run() {
     let audio_handle = AudioHandle::new().expect("Failed to initialize audio engine");
     let app_data = storage::load_data();
     let launch_minimized = app_data.settings.launch_minimized;
+
+    // Start HTTP API (for StreamDeck plugin + external integrations)
+    let http_audio = audio_handle.clone_handle();
+    let http_data = std::sync::Arc::new(Mutex::new(storage::load_data()));
+    http_api::start(std::sync::Arc::new(http_audio), http_data);
+
+    // Start Discord Rich Presence (connects if Discord is running)
+    discord_rpc::start();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -115,6 +125,7 @@ pub fn run() {
             commands::list_tts_voices,
             commands::synthesize_speech,
             commands::search_myinstants,
+            commands::search_freesound,
             commands::download_library_sound,
             commands::preview_library_sound,
             commands::stop_preview_library,
@@ -123,8 +134,10 @@ pub fn run() {
             commands::get_playing,
             commands::get_waveform,
             commands::get_data,
+            commands::set_data,
             commands::save_settings,
             commands::add_sound,
+            commands::import_audio_bytes,
             commands::update_sound,
             commands::delete_sound,
             commands::add_category,
@@ -152,6 +165,11 @@ pub fn run() {
             commands::get_current_version,
             commands::check_for_updates,
             commands::download_and_apply_update,
+            commands::check_piper,
+            commands::synthesize_piper,
+            commands::set_discord_rpc,
+            commands::update_discord_presence,
+            commands::trim_audio,
         ])
         .run(tauri::generate_context!())
         .expect("error while running TomBoard");

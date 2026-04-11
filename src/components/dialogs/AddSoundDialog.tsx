@@ -82,6 +82,8 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
   const [ttsDetectedLang, setTtsDetectedLang] = useState('');
   const [ttsLangFilter, setTtsLangFilter] = useState('');
   const [ttsGenderFilter, setTtsGenderFilter] = useState<'All' | 'Female' | 'Male'>('All');
+  const [ttsEngine, setTtsEngine] = useState<'windows' | 'piper'>('windows');
+  const [piperAvailable, setPiperAvailable] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -141,6 +143,12 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
         setTtsVoices(deduped);
         if (deduped.length > 0) setTtsVoice(deduped[0].name);
       }).catch(console.error);
+    }
+    // Check Piper availability
+    if (isOpen && data?.settings.piperPath) {
+      invoke<boolean>('check_piper', { piperPath: data.settings.piperPath }).then(ok => {
+        setPiperAvailable(ok);
+      }).catch(() => setPiperAvailable(false));
     }
   }, [isOpen]);
 
@@ -420,12 +428,25 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
   }, [ttsText, ttsVoices]);
 
   const handleTtsSynthesize = async () => {
-    if (!ttsText.trim() || !ttsVoice) return;
+    if (!ttsText.trim()) return;
     setTtsLoading(true);
     setTtsError(null);
     try {
-      const selectedVoice = ttsVoices.find(v => v.name === ttsVoice);
-      await invoke('synthesize_speech', { text: ttsText.trim(), voiceName: ttsVoice, rate: ttsRate, engine: selectedVoice?.engine || 'SAPI' });
+      if (ttsEngine === 'piper') {
+        if (!data?.settings.piperPath || !data?.settings.piperModel) {
+          setTtsError('Configurez le chemin de Piper et le modèle dans les Paramètres.');
+          return;
+        }
+        await invoke('synthesize_piper', {
+          text: ttsText.trim(),
+          piperPath: data.settings.piperPath,
+          modelPath: data.settings.piperModel,
+        });
+      } else {
+        if (!ttsVoice) return;
+        const selectedVoice = ttsVoices.find(v => v.name === ttsVoice);
+        await invoke('synthesize_speech', { text: ttsText.trim(), voiceName: ttsVoice, rate: ttsRate, engine: selectedVoice?.engine || 'SAPI' });
+      }
       await loadData();
       onClose();
     } catch (e) {
@@ -709,6 +730,36 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
 
         {activeTab === 2 && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {/* Engine toggle */}
+            <ToggleButtonGroup
+              value={ttsEngine}
+              exclusive
+              onChange={(_, v) => { if (v) setTtsEngine(v); }}
+              size="small"
+              fullWidth
+              sx={{
+                bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)',
+                borderRadius: '10px',
+                border: '1px solid',
+                borderColor: 'divider',
+                p: '3px',
+                '& .MuiToggleButton-root': {
+                  border: 'none',
+                  borderRadius: '8px !important',
+                  textTransform: 'none',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  py: 0.5,
+                  '&.Mui-selected': { bgcolor: 'primary.main', color: 'primary.contrastText' },
+                },
+              }}
+            >
+              <ToggleButton value="windows">Windows TTS</ToggleButton>
+              <ToggleButton value="piper" disabled={!piperAvailable}>
+                Piper (Local){!piperAvailable && ' — non configuré'}
+              </ToggleButton>
+            </ToggleButtonGroup>
+
             <TextField
               label="Texte à prononcer"
               value={ttsText}
@@ -722,7 +773,7 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
             />
 
-            {ttsDetectedLang && (
+            {ttsDetectedLang && ttsEngine === 'windows' && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>Langue détectée :</Typography>
                 <Chip label={LANG_LABELS[ttsDetectedLang] || ttsDetectedLang.toUpperCase()} size="small" color="info" sx={{ height: 22, fontSize: '0.65rem', borderRadius: '6px' }} />
@@ -730,6 +781,7 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
             )}
 
             {/* Filters */}
+            {ttsEngine === 'windows' && (
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
               <FormControl size="small" sx={{ minWidth: 150 }}>
                 <InputLabel>Langue</InputLabel>
@@ -766,7 +818,10 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
               </ToggleButtonGroup>
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>{filteredVoices.length} voix</Typography>
             </Box>
+            )}
 
+            {ttsEngine === 'windows' && (
+            <>
             <FormControl size="small" fullWidth>
               <InputLabel>Voix</InputLabel>
               <Select value={filteredVoices.find(v => v.name === ttsVoice) ? ttsVoice : (filteredVoices[0]?.name ?? '')} onChange={e => setTtsVoice(e.target.value)} label="Voix" sx={{ borderRadius: '10px' }}>
@@ -786,10 +841,12 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
               <Typography variant="body2" sx={{ fontSize: '0.78rem', mb: -0.5 }}>Vitesse : {ttsRate > 0 ? `+${ttsRate}` : ttsRate}</Typography>
               <Slider value={ttsRate} onChange={(_, v) => setTtsRate(v as number)} min={-5} max={5} step={1} marks size="small" />
             </Box>
+            </>
+            )}
 
             {ttsError && <Alert severity="error" onClose={() => setTtsError(null)} sx={{ fontSize: '0.75rem', py: 0.5, borderRadius: '10px' }}>{ttsError}</Alert>}
 
-            {ttsVoices.length === 0 && (
+            {ttsEngine === 'windows' && ttsVoices.length === 0 && (
               <Alert severity="warning" sx={{ fontSize: '0.75rem', py: 0.5, borderRadius: '10px' }}>
                 Aucune voix installée. Installez des voix dans Paramètres Windows → Heure et langue → Voix.
               </Alert>
@@ -798,7 +855,7 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
             <Button
               onClick={handleTtsSynthesize}
               variant="contained"
-              disabled={!ttsText.trim() || !ttsVoice || ttsLoading}
+              disabled={!ttsText.trim() || (ttsEngine === 'windows' && !ttsVoice) || (ttsEngine === 'piper' && !piperAvailable) || ttsLoading}
               fullWidth
               startIcon={ttsLoading ? <CircularProgress size={16} /> : <GraphicEq sx={{ fontSize: 18 }} />}
               sx={{ borderRadius: '10px', py: 1, textTransform: 'none', fontWeight: 600 }}

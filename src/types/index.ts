@@ -13,6 +13,8 @@ export interface Sound {
   isLooping: boolean;
   trimStart: number;
   trimEnd: number | null;
+  fadeIn: number;   // seconds
+  fadeOut: number;  // seconds
   addedAt: string;
   playCount: number;
   order: number;
@@ -48,6 +50,10 @@ export interface AppSettings {
   micPassthroughDevice: string;
   silentMode: boolean;
   noiseSuppression: boolean;
+  piperPath: string;
+  piperModel: string;
+  discordRpc: boolean;
+  language: 'fr' | 'en';
 }
 
 export interface AppData {
@@ -55,4 +61,4 @@ export interface AppData {
   profiles: Profile[];
 }
 
-export type ViewMode = 'grid' | 'list';
+export type ViewMode = 'grid' | 'list' | 'compact';

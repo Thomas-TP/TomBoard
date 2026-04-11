@@ -26,11 +26,12 @@ interface SoundCardProps {
   onEdit: (sound: Sound) => void;
   isDragActive?: boolean;
   isOverlay?: boolean;
+  compact?: boolean;
 }
 
 const MotionCard = motion.create(Card);
 
-export default function SoundCard({ sound, onContextMenu, onEdit, isDragActive, isOverlay }: SoundCardProps) {
+export default function SoundCard({ sound, onContextMenu, onEdit, isDragActive, isOverlay, compact }: SoundCardProps) {
   const playSound = useAppStore(s => s.playSound);
   const toggleFavorite = useAppStore(s => s.toggleFavorite);
   const deleteSound = useAppStore(s => s.deleteSound);
@@ -66,17 +67,17 @@ export default function SoundCard({ sound, onContextMenu, onEdit, isDragActive, 
     <div ref={isOverlay ? undefined : setNodeRef} style={isOverlay ? undefined : sortStyle as any} {...(isOverlay ? {} : attributes)} {...(isOverlay ? {} : listeners)}>
     <MotionCard
       layout={!isDragActive && !isOverlay}
-      initial={isOverlay ? false : { opacity: 0, scale: 0.95, y: 8 }}
+      initial={isOverlay ? false : { opacity: 0, scale: 0.92, y: 12 }}
       animate={isOverlay ? { scale: 1.05, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' } : { opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.9, y: -8 }}
-      whileHover={isDragActive || isOverlay ? undefined : { scale: 1.03, y: -3 }}
-      whileTap={isDragActive || isOverlay ? undefined : { scale: 0.97 }}
+      exit={{ opacity: 0, scale: 0.85, y: -12 }}
+      whileHover={isDragActive || isOverlay ? undefined : { scale: 1.04, y: -4, transition: { duration: 0.15 } }}
+      whileTap={isDragActive || isOverlay ? undefined : { scale: 0.94 }}
       onContextMenu={(e: React.MouseEvent) => {
         e.preventDefault();
         onContextMenu(sound, { top: e.clientY, left: e.clientX });
       }}
       onDoubleClick={() => onEdit(sound)}
-      transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
       sx={{
         position: 'relative',
         overflow: 'visible',
@@ -93,6 +94,7 @@ export default function SoundCard({ sound, onContextMenu, onEdit, isDragActive, 
       {/* Favorite button */}
       <IconButton
         size="small"
+        aria-label={sound.isFavorite ? `Retirer ${sound.name} des favoris` : `Ajouter ${sound.name} aux favoris`}
         onClick={(e) => {
           e.stopPropagation();
           toggleFavorite(sound.id);
@@ -116,6 +118,7 @@ export default function SoundCard({ sound, onContextMenu, onEdit, isDragActive, 
       {/* Delete button */}
       <IconButton
         size="small"
+        aria-label={`Supprimer ${sound.name}`}
         onClick={(e) => {
           e.stopPropagation();
           deleteSound(sound.id);
@@ -139,50 +142,76 @@ export default function SoundCard({ sound, onContextMenu, onEdit, isDragActive, 
 
       <CardActionArea
         onClick={() => playSound(sound)}
-        sx={{ p: 0 }}
+        aria-label={`${isPlaying ? 'Arrêter' : 'Jouer'} ${sound.name}`}
+        sx={{
+          p: 0,
+          '& .MuiCardActionArea-focusHighlight': {
+            opacity: 0,
+          },
+          '&:focus-visible': {
+            outline: '2px solid rgba(124, 92, 252, 0.7)',
+            outlineOffset: -2,
+            borderRadius: 'inherit',
+          },
+          '&:active::after': {
+            content: '""',
+            position: 'absolute',
+            inset: 0,
+            borderRadius: 'inherit',
+            animation: 'play-ripple 0.5s ease-out',
+            background: 'radial-gradient(circle, rgba(124, 92, 252, 0.3) 0%, transparent 70%)',
+            pointerEvents: 'none',
+            '@keyframes play-ripple': {
+              '0%': { opacity: 1, transform: 'scale(0)' },
+              '100%': { opacity: 0, transform: 'scale(2.5)' },
+            },
+          },
+        }}
       >
         <CardContent
           sx={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            py: 2,
-            px: 1.5,
+            py: compact ? 1 : 2,
+            px: compact ? 0.75 : 1.5,
             gap: 0.5,
           }}
         >
           {/* Icon */}
           <Box
             sx={{
-              fontSize: '1.8rem',
-              width: 46,
-              height: 46,
+              fontSize: compact ? '1.1rem' : '1.8rem',
+              width: compact ? 28 : 46,
+              height: compact ? 28 : 46,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              borderRadius: '12px',
+              borderRadius: compact ? '8px' : '12px',
               bgcolor: isPlaying
                 ? 'primary.main'
                 : (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)',
-              mb: 0.5,
+              mb: compact ? 0.25 : 0.5,
               transition: 'all 0.25s ease',
               ...(isPlaying && {
-                animation: 'sound-pulse 2s ease-in-out infinite',
+                animation: 'sound-pulse 1.5s ease-in-out infinite',
                 '@keyframes sound-pulse': {
                   '0%, 100%': {
-                    boxShadow: '0 0 0 0 rgba(124, 92, 252, 0.3)',
+                    boxShadow: '0 0 0 0 rgba(124, 92, 252, 0.35)',
+                    transform: 'scale(1)',
                   },
                   '50%': {
-                    boxShadow: '0 0 16px 4px rgba(124, 92, 252, 0.2)',
+                    boxShadow: '0 0 20px 6px rgba(124, 92, 252, 0.25)',
+                    transform: 'scale(1.05)',
                   },
                 },
               }),
             }}
           >
             {isPlaying ? (
-              <Stop sx={{ fontSize: 24, color: 'primary.contrastText' }} />
+              <Stop sx={{ fontSize: compact ? 16 : 24, color: 'primary.contrastText' }} />
             ) : (
-              <Typography sx={{ fontSize: '1.4rem', lineHeight: 1 }}>{sound.icon}</Typography>
+              <Typography sx={{ fontSize: compact ? '0.85rem' : '1.4rem', lineHeight: 1 }}>{sound.icon}</Typography>
             )}
           </Box>
 
@@ -194,7 +223,7 @@ export default function SoundCard({ sound, onContextMenu, onEdit, isDragActive, 
               fontWeight: 600,
               maxWidth: '100%',
               textAlign: 'center',
-              fontSize: '0.75rem',
+              fontSize: compact ? '0.6rem' : '0.75rem',
               letterSpacing: '-0.01em',
             }}
           >
@@ -208,7 +237,8 @@ export default function SoundCard({ sound, onContextMenu, onEdit, isDragActive, 
         </CardContent>
       </CardActionArea>
 
-      {/* Volume slider - shown on hover */}
+      {/* Volume slider - shown on hover, hidden in compact */}
+      {!compact && (
       <Box
         sx={{
           px: 1.5,
@@ -233,6 +263,7 @@ export default function SoundCard({ sound, onContextMenu, onEdit, isDragActive, 
           max={1}
           step={0.01}
           size="small"
+          aria-label={`Volume de ${sound.name}`}
           sx={{ flex: 1 }}
           onClick={e => e.stopPropagation()}
         />
@@ -240,6 +271,7 @@ export default function SoundCard({ sound, onContextMenu, onEdit, isDragActive, 
           {Math.round(sound.volume * 100)}
         </Typography>
       </Box>
+      )}
     </MotionCard>
     </div>
   );

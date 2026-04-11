@@ -5,6 +5,8 @@ import { AppData, AppSettings, Sound, ViewMode } from '../types';
 export type SoundFilter = 'all' | 'favorites' | 'looping' | 'recent' | 'most-played';
 export type SoundSort = 'order' | 'name' | 'recent' | 'most-played';
 
+const MAX_HISTORY = 30;
+
 interface AppState {
   // Data
   data: AppData | null;
@@ -16,6 +18,12 @@ interface AppState {
   activeFilter: SoundFilter;
   activeSort: SoundSort;
 
+  // History (undo/redo)
+  history: AppData[];
+  future: AppData[];
+  canUndo: boolean;
+  canRedo: boolean;
+
   // Actions
   loadData: () => Promise<void>;
   setActiveCategory: (id: string) => void;
@@ -23,6 +31,8 @@ interface AppState {
   setSearchQuery: (query: string) => void;
   setActiveFilter: (filter: SoundFilter) => void;
   setActiveSort: (sort: SoundSort) => void;
+  undo: () => Promise<void>;
+  redo: () => Promise<void>;
 
   // Audio actions
   playSound: (sound: Sound) => Promise<void>;
@@ -65,6 +75,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   playingIds: [],
   activeFilter: 'all' as SoundFilter,
   activeSort: 'order' as SoundSort,
+  history: [],
+  future: [],
+  canUndo: false,
+  canRedo: false,
 
   loadData: async () => {
     try {
@@ -82,6 +96,27 @@ export const useAppStore = create<AppState>((set, get) => ({
   setActiveFilter: (filter) => set({ activeFilter: filter }),
   setActiveSort: (sort) => set({ activeSort: sort }),
 
+  undo: async () => {
+    const { history, data, future } = get();
+    if (history.length === 0 || !data) return;
+    const prev = history[history.length - 1];
+    const newHistory = history.slice(0, -1);
+    const newFuture = [data, ...future].slice(0, MAX_HISTORY);
+    // Restore backend to the previous snapshot
+    await invoke('set_data', { data: prev }).catch(console.error);
+    set({ data: prev, history: newHistory, future: newFuture, canUndo: newHistory.length > 0, canRedo: true });
+  },
+
+  redo: async () => {
+    const { future, data, history } = get();
+    if (future.length === 0 || !data) return;
+    const next = future[0];
+    const newFuture = future.slice(1);
+    const newHistory = [...history, data].slice(-MAX_HISTORY);
+    await invoke('set_data', { data: next }).catch(console.error);
+    set({ data: next, history: newHistory, future: newFuture, canUndo: true, canRedo: newFuture.length > 0 });
+  },
+
   playSound: async (sound) => {
     try {
       const { playingIds } = get();
@@ -96,8 +131,14 @@ export const useAppStore = create<AppState>((set, get) => ({
         volume: sound.volume,
         looping: sound.isLooping,
         speed: sound.speed ?? 1.0,
+        fadeIn: sound.fadeIn ?? 0,
+        fadeOut: sound.fadeOut ?? 0,
       });
       set({ playingIds: [...playingIds, sound.id] });
+
+      // Update Discord Rich Presence
+      const profileName = get().data?.profiles.find(p => p.id === get().data?.settings.activeProfileId)?.name ?? 'TomBoard';
+      invoke('update_discord_presence', { detail: `🔊 ${sound.name}`, state: profileName }).catch(() => {});
 
       // Increment play count
       const data = get().data;
@@ -130,6 +171,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       await invoke('stop_all');
       set({ playingIds: [] });
+      invoke('update_discord_presence', { detail: 'TomBoard ouvert', state: '' }).catch(() => {});
     } catch (e) {
       console.error('Failed to stop all:', e);
     }
@@ -166,17 +208,23 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   addSound: async (name, sourcePath, category) => {
+    const { data, history } = get();
+    if (data) set({ history: [...history, data].slice(-MAX_HISTORY), future: [], canUndo: true, canRedo: false });
     const sound = await invoke<Sound>('add_sound', { name, sourcePath, category });
     await get().loadData();
     return sound;
   },
 
   updateSound: async (sound) => {
+    const { data, history } = get();
+    if (data) set({ history: [...history, data].slice(-MAX_HISTORY), future: [], canUndo: true, canRedo: false });
     await invoke('update_sound', { sound });
     await get().loadData();
   },
 
   deleteSound: async (id) => {
+    const { data, history } = get();
+    if (data) set({ history: [...history, data].slice(-MAX_HISTORY), future: [], canUndo: true, canRedo: false });
     await invoke('delete_sound', { id });
     await get().loadData();
   },

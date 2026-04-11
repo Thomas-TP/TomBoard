@@ -70,6 +70,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useAppStore } from '../../stores/appStore';
 import { AppSettings, Category } from '../../types';
 import { ICON_OPTIONS, renderCategoryIcon } from '../../utils/icons';
+import { useI18n } from '../../i18n/I18nProvider';
 
 const SEED_COLORS = [
   '#6750A4', '#D32F2F', '#E91E63', '#9C27B0', '#673AB7',
@@ -126,6 +127,7 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const deleteProfile = useAppStore(s => s.deleteProfile);
   const duplicateProfile = useAppStore(s => s.duplicateProfile);
   const loadData = useAppStore(s => s.loadData);
+  const { setLocale } = useI18n();
 
   const [tab, setTab] = useState(0);
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -185,6 +187,8 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         finalSettings.secondaryDevice = 'none';
       }
       await saveSettings(finalSettings);
+      // Sync locale
+      if (finalSettings.language) setLocale(finalSettings.language);
       // Sync audio settings to backend in order
       await invoke('set_master_volume', { volume: finalSettings.masterVolume }).catch(console.error);
       await invoke('set_output_device', { deviceName: finalSettings.outputDevice }).catch(console.error);
@@ -335,6 +339,55 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>Comportement</Typography>
               <FormControlLabel control={<Switch checked={settings.minimizeToTray} onChange={e => update({ minimizeToTray: e.target.checked })} size="small" />} label={<Typography variant="body2">Minimiser dans la barre système</Typography>} />
               <FormControlLabel control={<Switch checked={settings.launchMinimized} onChange={e => update({ launchMinimized: e.target.checked })} size="small" />} label={<Typography variant="body2">Démarrer minimisé</Typography>} />
+              <FormControlLabel control={<Switch checked={settings.discordRpc ?? true} onChange={e => update({ discordRpc: e.target.checked })} size="small" />} label={<Typography variant="body2">Discord Rich Presence</Typography>} />
+            </Box>
+            <Divider />
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>Langue / Language</Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                {(['fr', 'en'] as const).map(lang => (
+                  <Box
+                    key={lang}
+                    onClick={() => update({ language: lang })}
+                    sx={{
+                      px: 2, py: 0.75, borderRadius: 2, cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem',
+                      border: '1px solid',
+                      borderColor: (settings.language ?? 'fr') === lang ? 'primary.main' : 'divider',
+                      bgcolor: (settings.language ?? 'fr') === lang ? 'primary.main' : 'transparent',
+                      color: (settings.language ?? 'fr') === lang ? 'primary.contrastText' : 'text.primary',
+                      transition: 'all 0.15s ease',
+                      '&:hover': { borderColor: 'primary.main' },
+                    }}
+                  >
+                    {lang === 'fr' ? '🇫🇷 Français' : '🇬🇧 English'}
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+            <Divider />
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>Piper TTS (Synthèse vocale locale)</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 1.5, display: 'block' }}>
+                Piper est un moteur TTS open-source ultra-rapide. Téléchargez piper.exe et un modèle .onnx depuis github.com/rhasspy/piper
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <TextField
+                  label="Chemin vers piper.exe"
+                  value={settings.piperPath}
+                  onChange={e => update({ piperPath: e.target.value })}
+                  size="small"
+                  fullWidth
+                  placeholder="C:\piper\piper.exe"
+                />
+                <TextField
+                  label="Chemin vers le modèle .onnx"
+                  value={settings.piperModel}
+                  onChange={e => update({ piperModel: e.target.value })}
+                  size="small"
+                  fullWidth
+                  placeholder="C:\piper\fr_FR-siwis-medium.onnx"
+                />
+              </Box>
             </Box>
           </>
         )}

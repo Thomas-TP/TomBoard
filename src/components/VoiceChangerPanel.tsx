@@ -21,6 +21,7 @@ import {
   ExpandLess,
 } from '@mui/icons-material';
 import { invoke } from '@tauri-apps/api/core';
+import MicVisualizer from './sound/MicVisualizer';
 
 interface VoicePresetInfo {
   id: string;
@@ -45,6 +46,11 @@ interface VoiceFxParams {
   gate_threshold: number;
   gain: number;
   noise_suppression: boolean;
+  eq_low: number;
+  eq_low_mid: number;
+  eq_mid: number;
+  eq_high_mid: number;
+  eq_high: number;
 }
 
 const defaultParams: VoiceFxParams = {
@@ -63,6 +69,11 @@ const defaultParams: VoiceFxParams = {
   gate_threshold: 0,
   gain: 1,
   noise_suppression: false,
+  eq_low: 0,
+  eq_low_mid: 0,
+  eq_mid: 0,
+  eq_high_mid: 0,
+  eq_high: 0,
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -195,6 +206,9 @@ export default function VoiceChangerPanel({ open, onClose }: VoiceChangerPanelPr
 
         {/* Content */}
         <Box sx={{ flex: 1, overflow: 'auto', px: 2.5, py: 2 }}>
+          {/* Spectrogram + VU meter */}
+          <MicVisualizer active={micActive} />
+
           {error && (
             <Alert
               severity="warning"
@@ -349,6 +363,34 @@ export default function VoiceChangerPanel({ open, onClose }: VoiceChangerPanelPr
                 onChange={v => updateParam('gate_threshold', v)} format={v => v === 0 ? 'Off' : `${(v * 1000).toFixed(0)}`} />
               <ParamSlider label="Volume sortie" value={params.gain} min={0.1} max={3} step={0.05}
                 onChange={v => updateParam('gain', v)} format={v => `${Math.round(v * 100)}%`} />
+
+              <Divider sx={{ my: 1, opacity: 0.4 }} />
+
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  color: 'text.secondary',
+                  fontSize: '0.6rem',
+                  mb: 0.5,
+                  display: 'block',
+                }}
+              >
+                🏚️ Égaliseur paramétrique
+              </Typography>
+
+              <ParamSlider label="80 Hz (Sub)" value={params.eq_low} min={-12} max={12} step={0.5}
+                onChange={v => updateParam('eq_low', v)} format={v => `${v > 0 ? '+' : ''}${v} dB`} />
+              <ParamSlider label="250 Hz (Low-Mid)" value={params.eq_low_mid} min={-12} max={12} step={0.5}
+                onChange={v => updateParam('eq_low_mid', v)} format={v => `${v > 0 ? '+' : ''}${v} dB`} />
+              <ParamSlider label="1 kHz (Mid)" value={params.eq_mid} min={-12} max={12} step={0.5}
+                onChange={v => updateParam('eq_mid', v)} format={v => `${v > 0 ? '+' : ''}${v} dB`} />
+              <ParamSlider label="3.5 kHz (Hi-Mid)" value={params.eq_high_mid} min={-12} max={12} step={0.5}
+                onChange={v => updateParam('eq_high_mid', v)} format={v => `${v > 0 ? '+' : ''}${v} dB`} />
+              <ParamSlider label="12 kHz (Highs)" value={params.eq_high} min={-12} max={12} step={0.5}
+                onChange={v => updateParam('eq_high', v)} format={v => `${v > 0 ? '+' : ''}${v} dB`} />
             </Box>
           </Collapse>
         </Box>

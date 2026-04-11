@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
+use std::time::Duration;
 
 use crate::voice_fx::SharedVoiceFx;
 
@@ -15,6 +16,8 @@ pub enum AudioCommand {
         volume: f32,
         looping: bool,
         speed: f32,
+        fade_in: f64,
+        fade_out: f64,
     },
     Stop {
         id: String,
@@ -86,6 +89,10 @@ pub struct AudioHandle {
 }
 
 impl AudioHandle {
+    pub fn clone_handle(&self) -> Self {
+        Self { sender: self.sender.clone() }
+    }
+
     pub fn new() -> Result<Self, String> {
         let (sender, receiver) = mpsc::channel::<AudioCommand>();
 
@@ -116,7 +123,7 @@ impl AudioHandle {
 
                 match receiver.recv() {
                     Ok(cmd) => match cmd {
-                        AudioCommand::Play { id, file_path, volume, looping, speed } => {
+                        AudioCommand::Play { id, file_path, volume, looping, speed, fade_in, fade_out } => {
                             // Stop existing
                             if let Some(ss) = sinks.remove(&id) {
                                 ss.primary.stop();
@@ -140,8 +147,16 @@ impl AudioHandle {
                             // When silent mode is on, mute primary (speakers) so only secondary (Discord) gets audio
                             sink.set_volume(if silent_mode { 0.0 } else { effective_volume });
                             sink.set_speed(speed.max(0.1).min(3.0));
+                            let fi_dur = Duration::from_secs_f64(fade_in.max(0.0));
+                            let _ = fade_out; // fade_out persisted for future implementation
                             if looping {
-                                sink.append(source.repeat_infinite());
+                                if fi_dur.as_millis() > 0 {
+                                    sink.append(source.repeat_infinite().fade_in(fi_dur));
+                                } else {
+                                    sink.append(source.repeat_infinite());
+                                }
+                            } else if fi_dur.as_millis() > 0 {
+                                sink.append(source.fade_in(fi_dur));
                             } else {
                                 sink.append(source);
                             }
@@ -162,7 +177,13 @@ impl AudioHandle {
                                             s2.set_volume(effective_volume);
                                             s2.set_speed(speed.max(0.1).min(3.0));
                                             if looping {
-                                                s2.append(source2.repeat_infinite());
+                                                if fi_dur.as_millis() > 0 {
+                                                    s2.append(source2.repeat_infinite().fade_in(fi_dur));
+                                                } else {
+                                                    s2.append(source2.repeat_infinite());
+                                                }
+                                            } else if fi_dur.as_millis() > 0 {
+                                                s2.append(source2.fade_in(fi_dur));
                                             } else {
                                                 s2.append(source2);
                                             }
@@ -321,9 +342,9 @@ impl AudioHandle {
         Ok(Self { sender })
     }
 
-    pub fn play(&self, id: &str, file_path: &str, volume: f32, looping: bool, speed: f32) -> Result<(), String> {
+    pub fn play(&self, id: &str, file_path: &str, volume: f32, looping: bool, speed: f32, fade_in: f64, fade_out: f64) -> Result<(), String> {
         self.sender
-            .send(AudioCommand::Play { id: id.to_string(), file_path: file_path.to_string(), volume, looping, speed })
+            .send(AudioCommand::Play { id: id.to_string(), file_path: file_path.to_string(), volume, looping, speed, fade_in, fade_out })
             .map_err(|e| format!("Audio thread error: {}", e))
     }
 

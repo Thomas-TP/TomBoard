@@ -27,8 +27,10 @@ import {
   Keyboard,
   Backspace,
 } from '@mui/icons-material';
+import { invoke } from '@tauri-apps/api/core';
 import { Sound } from '../../types';
 import { useAppStore } from '../../stores/appStore';
+import WaveformTrimEditor from '../sound/WaveformTrimEditor';
 
 interface EditSoundDialogProps {
   open: boolean;
@@ -64,6 +66,11 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [recordingHotkey, setRecordingHotkey] = useState(false);
+  const [trimStart, setTrimStart] = useState(0);
+  const [trimEnd, setTrimEnd] = useState<number | null>(null);
+  const [trimApplied, setTrimApplied] = useState(false);
+  const [fadeIn, setFadeIn] = useState(0);
+  const [fadeOut, setFadeOut] = useState(0);
 
   const [emojiAnchor, setEmojiAnchor] = useState<HTMLElement | null>(null);
   const [colorAnchor, setColorAnchor] = useState<HTMLElement | null>(null);
@@ -84,11 +91,38 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
       setIsLooping(sound.isLooping);
       setHotkey(sound.hotkey);
       setTags([...sound.tags]);
+      setTrimStart(sound.trimStart ?? 0);
+      setTrimEnd(sound.trimEnd ?? null);
+      setTrimApplied(false);
+      setFadeIn(sound.fadeIn ?? 0);
+      setFadeOut(sound.fadeOut ?? 0);
     }
   }, [sound]);
 
   const handleSave = async () => {
     if (!sound || !name.trim()) return;
+
+    // Apply trim to file if changed
+    let finalFilePath = sound.filePath;
+    let finalTrimStart = trimStart;
+    let finalTrimEnd = trimEnd;
+    if (!trimApplied && (trimStart > 0.01 || trimEnd !== null)) {
+      try {
+        const newPath = await invoke<string>('trim_audio', {
+          filePath: sound.filePath,
+          trimStart,
+          trimEndOpt: trimEnd,
+        });
+        finalFilePath = newPath;
+        finalTrimStart = 0;
+        finalTrimEnd = null;
+        setTrimApplied(true);
+      } catch (e) {
+        console.error('Trim failed:', e);
+        // Continue without trim applied to file
+      }
+    }
+
     await updateSound({
       ...sound,
       name: name.trim(),
@@ -100,6 +134,11 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
       isLooping,
       hotkey,
       tags,
+      filePath: finalFilePath,
+      trimStart: finalTrimStart,
+      trimEnd: finalTrimEnd,
+      fadeIn,
+      fadeOut,
     });
     onClose();
   };
@@ -350,6 +389,46 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
             />
           </Box>
 
+          {/* Fade in */}
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+              Fondu entrant — {fadeIn.toFixed(1)}s
+            </Typography>
+            <Slider
+              value={fadeIn}
+              onChange={(_, v) => setFadeIn(v as number)}
+              min={0}
+              max={10}
+              step={0.1}
+              size="small"
+              marks={[
+                { value: 0, label: '0s' },
+                { value: 5, label: '5s' },
+                { value: 10, label: '10s' },
+              ]}
+            />
+          </Box>
+
+          {/* Fade out */}
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+              Fondu sortant — {fadeOut.toFixed(1)}s
+            </Typography>
+            <Slider
+              value={fadeOut}
+              onChange={(_, v) => setFadeOut(v as number)}
+              min={0}
+              max={10}
+              step={0.1}
+              size="small"
+              marks={[
+                { value: 0, label: '0s' },
+                { value: 5, label: '5s' },
+                { value: 10, label: '10s' },
+              ]}
+            />
+          </Box>
+
           <Divider />
 
           {/* Hotkey */}
@@ -421,6 +500,23 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
               size="small"
               fullWidth
             />
+          </Box>
+
+          <Divider />
+
+          {/* Waveform trim editor */}
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+              Rogner le son
+            </Typography>
+            {sound?.filePath && (
+              <WaveformTrimEditor
+                filePath={sound.filePath}
+                trimStart={trimStart}
+                trimEnd={trimEnd}
+                onChange={(s, e) => { setTrimStart(s); setTrimEnd(e); setTrimApplied(false); }}
+              />
+            )}
           </Box>
         </Box>
       </DialogContent>

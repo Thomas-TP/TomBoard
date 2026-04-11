@@ -36,6 +36,13 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "windows": {
+      "wix": {},
+      "nsis": {}
+    },
+    "publisher": "leole",
+    "copyright": "© 2025 leole",
+    "shortDescription": "Soundboard for streamers and content creators"
   }
 }

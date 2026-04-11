@@ -26,6 +26,10 @@ pub struct Sound {
     pub trim_start: f64,
     #[serde(rename = "trimEnd")]
     pub trim_end: Option<f64>,
+    #[serde(rename = "fadeIn", default)]
+    pub fade_in: f64,
+    #[serde(rename = "fadeOut", default)]
+    pub fade_out: f64,
     #[serde(rename = "addedAt")]
     pub added_at: String,
     #[serde(rename = "playCount")]
@@ -59,6 +63,7 @@ fn default_false() -> bool { false }
 fn default_empty_string() -> String { String::new() }
 fn default_none_string() -> String { "none".to_string() }
 fn default_true() -> bool { true }
+fn default_language() -> String { "fr".to_string() }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppSettings {
@@ -90,6 +95,14 @@ pub struct AppSettings {
     pub silent_mode: bool,
     #[serde(rename = "noiseSuppression", default = "default_true")]
     pub noise_suppression: bool,
+    #[serde(rename = "piperPath", default = "default_empty_string")]
+    pub piper_path: String,
+    #[serde(rename = "piperModel", default = "default_empty_string")]
+    pub piper_model: String,
+    #[serde(rename = "discordRpc", default = "default_true")]
+    pub discord_rpc: bool,
+    #[serde(default = "default_language")]
+    pub language: String,
 }
 
 impl Default for AppSettings {
@@ -109,6 +122,10 @@ impl Default for AppSettings {
             mic_passthrough_device: String::new(),
             silent_mode: false,
             noise_suppression: true,
+            piper_path: String::new(),
+            piper_model: String::new(),
+            discord_rpc: true,
+            language: "fr".to_string(),
         }
     }
 }

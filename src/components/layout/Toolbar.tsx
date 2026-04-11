@@ -12,6 +12,7 @@ import {
 import {
   GridView,
   ViewList,
+  DensitySmall,
   Apps,
   FolderSpecial,
   Sort,
@@ -245,6 +246,7 @@ export default function Toolbar({ dragOverCategory, isDragging }: ToolbarProps) 
           exclusive
           onChange={(_, v) => v && setViewMode(v)}
           size="small"
+          aria-label="Mode d'affichage"
           sx={{
             bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)',
             borderRadius: '8px',
@@ -266,11 +268,14 @@ export default function Toolbar({ dragOverCategory, isDragging }: ToolbarProps) 
             },
           }}
         >
-          <ToggleButton value="grid">
+          <ToggleButton value="grid" aria-label="Vue grille">
             <GridView sx={{ fontSize: 15 }} />
           </ToggleButton>
-          <ToggleButton value="list">
+          <ToggleButton value="list" aria-label="Vue liste">
             <ViewList sx={{ fontSize: 15 }} />
+          </ToggleButton>
+          <ToggleButton value="compact" aria-label="Vue compacte">
+            <DensitySmall sx={{ fontSize: 15 }} />
           </ToggleButton>
         </ToggleButtonGroup>
       </Box>

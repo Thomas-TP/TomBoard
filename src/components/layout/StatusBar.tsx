@@ -44,6 +44,9 @@ export default function StatusBar() {
     >
       {/* Now playing section */}
       <Box
+        role="status"
+        aria-live="polite"
+        aria-label={playingCount > 0 ? `${playingCount} son${playingCount > 1 ? 's' : ''} en lecture: ${playingNames.join(', ')}` : 'Aucun son en lecture'}
         sx={{
           display: 'flex',
           alignItems: 'center',
@@ -118,6 +121,36 @@ export default function StatusBar() {
         )}
       </Box>
 
+      {/* HTTP API indicator */}
+      <Tooltip title="API HTTP active — port 47891" arrow>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.4,
+            px: 0.75,
+            py: 0.2,
+            borderRadius: '6px',
+            border: '1px solid',
+            borderColor: 'divider',
+            cursor: 'default',
+          }}
+        >
+          <Box
+            sx={{
+              width: 5,
+              height: 5,
+              borderRadius: '50%',
+              bgcolor: '#00D4AA',
+              animation: 'pulse-dot 3s ease-in-out infinite',
+            }}
+          />
+          <Typography variant="caption" sx={{ fontSize: '0.6rem', fontWeight: 600, color: 'text.secondary', fontFamily: 'monospace' }}>
+            :47891
+          </Typography>
+        </Box>
+      </Tooltip>
+
       {/* Theme toggle */}
       <Tooltip title={isDark ? 'Mode clair' : 'Mode sombre'} arrow>
         <IconButton
@@ -165,6 +198,7 @@ export default function StatusBar() {
           max={1}
           step={0.01}
           size="small"
+          aria-label="Volume principal"
           sx={{ width: 70 }}
         />
         <Typography

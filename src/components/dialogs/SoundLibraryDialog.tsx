@@ -13,6 +13,8 @@ import {
   InputAdornment,
   Chip,
   Skeleton,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import {
   Close,
@@ -77,6 +79,8 @@ const CATEGORIES = [
   { label: 'Explosion', query: 'explosion', icon: Bolt },
 ];
 
+type LibrarySource = 'myinstants' | 'freesound';
+
 export default function SoundLibraryDialog({ open, onClose }: SoundLibraryDialogProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<LibrarySound[]>([]);
@@ -87,8 +91,10 @@ export default function SoundLibraryDialog({ open, onClose }: SoundLibraryDialog
   const [addingKey, setAddingKey] = useState<string | null>(null);
   const [addedKeys, setAddedKeys] = useState<Set<string>>(new Set());
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [source, setSource] = useState<LibrarySource>('myinstants');
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const loadData = useAppStore(s => s.loadData);
+  const data = useAppStore(s => s.data);
 
   const soundKey = (s: LibrarySound) => `${s.source}-${s.id}`;
 
@@ -114,15 +120,25 @@ export default function SoundLibraryDialog({ open, onClose }: SoundLibraryDialog
     }
   }, [open]);
 
-  const doSearch = useCallback(async (searchQuery: string, isDefault = false) => {
+  const doSearch = useCallback(async (searchQuery: string, isDefault = false, src?: LibrarySource) => {
+    const activeSource = src ?? source;
     setLoading(true);
     setError(null);
     setResults([]);
     stopPreview();
     try {
-      const res = await invoke<LibrarySound[]>('search_myinstants', {
-        query: searchQuery,
-      });
+      let res: LibrarySound[];
+      if (activeSource === 'freesound') {
+        const apiKey = data?.settings.freesoundApiKey ?? '';
+        res = await invoke<LibrarySound[]>('search_freesound', {
+          query: searchQuery,
+          apiKey,
+        });
+      } else {
+        res = await invoke<LibrarySound[]>('search_myinstants', {
+          query: searchQuery,
+        });
+      }
       setResults(res);
       if (res.length === 0 && !isDefault) setError('Aucun résultat trouvé.');
     } catch (e) {
@@ -130,7 +146,7 @@ export default function SoundLibraryDialog({ open, onClose }: SoundLibraryDialog
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [source, data?.settings.freesoundApiKey]);
 
   const search = () => {
     if (!query.trim()) return;
@@ -263,13 +279,51 @@ export default function SoundLibraryDialog({ open, onClose }: SoundLibraryDialog
               Bibliothèque
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>
-              Myinstants — Sons et memes populaires
+              {source === 'freesound' ? 'Freesound — Sons Creative Commons' : 'Myinstants — Sons et memes populaires'}
             </Typography>
           </Box>
         </Box>
-        <IconButton onClick={onClose} size="small" sx={{ width: 28, height: 28 }}>
-          <Close sx={{ fontSize: 16 }} />
-        </IconButton>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <ToggleButtonGroup
+            value={source}
+            exclusive
+            onChange={(_, v) => {
+              if (v) {
+                setSource(v);
+                setResults([]);
+                setActiveCategory(null);
+                doSearch('', true, v);
+              }
+            }}
+            size="small"
+            sx={{
+              borderRadius: '8px',
+              border: '1px solid',
+              borderColor: 'divider',
+              p: '2px',
+              '& .MuiToggleButton-root': {
+                border: 'none',
+                borderRadius: '6px !important',
+                px: 1.25,
+                py: 0.3,
+                fontSize: '0.68rem',
+                fontWeight: 600,
+                textTransform: 'none',
+                '&.Mui-selected': {
+                  bgcolor: 'primary.main',
+                  color: 'primary.contrastText',
+                  '&:hover': { bgcolor: 'primary.dark' },
+                },
+              },
+            }}
+          >
+            <ToggleButton value="myinstants">MyInstants</ToggleButton>
+            <ToggleButton value="freesound">Freesound</ToggleButton>
+          </ToggleButtonGroup>
+          <IconButton onClick={onClose} size="small" sx={{ width: 28, height: 28 }}>
+            <Close sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Box>
       </Box>
 
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, px: 2.5, pt: 0, pb: 2, overflow: 'hidden', flex: 1 }}>

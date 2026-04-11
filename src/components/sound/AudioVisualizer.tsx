@@ -5,6 +5,9 @@ import { invoke } from '@tauri-apps/api/core';
 
 const BAR_COUNT = 20;
 
+// In-memory waveform cache keyed by filePath
+const waveformCache = new Map<string, Float32Array>();
+
 export default function AudioVisualizer() {
   const playingIds = useAppStore(s => s.playingIds);
   const data = useAppStore(s => s.data);
@@ -17,9 +20,16 @@ export default function AudioVisualizer() {
   const profile = data?.profiles.find(p => p.id === data.settings.activeProfileId);
 
   const loadWaveform = useCallback(async (filePath: string) => {
+    const cached = waveformCache.get(filePath);
+    if (cached) {
+      waveformRef.current = cached;
+      return;
+    }
     try {
       const wf = await invoke<number[]>('get_waveform', { filePath, bars: BAR_COUNT });
-      waveformRef.current = new Float32Array(wf);
+      const arr = new Float32Array(wf);
+      waveformCache.set(filePath, arr);
+      waveformRef.current = arr;
     } catch {
       waveformRef.current = new Float32Array(BAR_COUNT).fill(0.3);
     }

@@ -1,6 +1,6 @@
 [package]
 name = "tomboard"
-version = "0.1.2"
+version = "0.2.0"
 description = "Le soundboard ultime pour Windows"
 authors = ["Thomas-TP"]
 edition = "2021"
@@ -41,6 +41,6 @@ windows = { version = "0.54", features = [
     "Storage_Streams",
 ] }
 nnnoiseless = "0.5"
-rustfft = "6"
 velopack = "0.0"
+tiny_http = "0.12"
 
