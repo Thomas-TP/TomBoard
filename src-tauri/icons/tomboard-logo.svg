@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- M3E background: deep expressive purple -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#1A0536"/>
+      <stop offset="100%" stop-color="#36096A"/>
+    </linearGradient>
+
+    <!-- M3E accent blob: hot coral/pink -->
+    <radialGradient id="blob1" cx="30%" cy="30%" r="60%">
+      <stop offset="0%"   stop-color="#FF4DB8" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#FF4DB8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="blob2" cx="75%" cy="72%" r="55%">
+      <stop offset="0%"   stop-color="#00E5FF" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#00E5FF" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Equalizer bars gradient: bright lavender → electric pink -->
+    <linearGradient id="bar-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#EAD9FF"/>
+      <stop offset="100%" stop-color="#C77DFF"/>
+    </linearGradient>
+    <linearGradient id="bar-pink" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#FF80CE"/>
+      <stop offset="100%" stop-color="#FF4DB8"/>
+    </linearGradient>
+    <linearGradient id="bar-teal" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#80EEFF"/>
+      <stop offset="100%" stop-color="#00C8E8"/>
+    </linearGradient>
+
+    <!-- Glow filter for center bar -->
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-soft" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- ── Background squircle ── -->
+  <rect width="512" height="512" rx="130" fill="url(#bg)"/>
+
+  <!-- ── Expressive color blobs (M3E) ── -->
+  <rect width="512" height="512" rx="130" fill="url(#blob1)"/>
+  <rect width="512" height="512" rx="130" fill="url(#blob2)"/>
+
+  <!-- ── Pill container for bars ── -->
+  <rect x="80" y="120" width="352" height="272" rx="68" fill="#FFFFFF" fill-opacity="0.045"/>
+
+  <!-- ── Equalizer bars — 7 bars, M3E rounded pill shape ── -->
+  <!-- Heights: 88 130 168 210 168 130 88  (expressive varying) -->
+  <!-- y = 336 - height, bottom-aligned at y=336 -->
+
+  <!-- Bar 1 (short, teal) -->
+  <rect x="108" y="248" width="34" height="88"  rx="17" fill="url(#bar-teal)"  opacity="0.75"/>
+  <!-- Bar 2 (mid, lavender) -->
+  <rect x="158" y="206" width="34" height="130" rx="17" fill="url(#bar-grad)"  opacity="0.85"/>
+  <!-- Bar 3 (tall, lavender) -->
+  <rect x="208" y="168" width="34" height="168" rx="17" fill="url(#bar-grad)"/>
+  <!-- Bar 4 (CENTER — tallest, pink glow) -->
+  <rect x="258" y="126" width="36" height="210" rx="18" fill="url(#bar-pink)"  filter="url(#glow)"/>
+  <!-- Bar 5 (tall, lavender) -->
+  <rect x="312" y="168" width="34" height="168" rx="17" fill="url(#bar-grad)"/>
+  <!-- Bar 6 (mid, lavender) -->
+  <rect x="362" y="206" width="34" height="130" rx="17" fill="url(#bar-grad)"  opacity="0.85"/>
+  <!-- Bar 7 (short, teal) -->
+  <rect x="412" y="248" width="34" height="88"  rx="17" fill="url(#bar-teal)"  opacity="0.75"/>
+
+  <!-- ── Glow halo behind center bar ── -->
+  <ellipse cx="276" cy="210" rx="38" ry="90" fill="#FF4DB8" opacity="0.18" filter="url(#glow-soft)"/>
+
+  <!-- ── Bottom pill badge: "TB" monogram ── -->
+  <rect x="176" y="358" width="160" height="56" rx="28" fill="#C77DFF" fill-opacity="0.18"/>
+  <rect x="176" y="358" width="160" height="56" rx="28" fill="none" stroke="#EAD9FF" stroke-width="1.5" stroke-opacity="0.3"/>
+  <text x="256" y="397" font-family="'SF Pro Rounded','Segoe UI',Arial,sans-serif"
+        font-size="28" font-weight="800" text-anchor="middle" letter-spacing="3"
+        fill="#EAD9FF">TB</text>
+</svg>
