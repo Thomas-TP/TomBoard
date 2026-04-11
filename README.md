@@ -127,7 +127,7 @@ npm run tauri build
 | **État** | Zustand 5 |
 | **Animations** | Framer Motion 12 |
 | **Drag & Drop** | dnd-kit |
-| **Installateur** | NSIS |
+| **Installateur** | Velopack |
 
 ---
 
