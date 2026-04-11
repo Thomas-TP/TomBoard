@@ -48,6 +48,7 @@ import {
   FileDownload,
   Settings as SettingsIcon,
   Mic as MicIcon,
+  SystemUpdateAlt,
 } from '@mui/icons-material';
 import { invoke } from '@tauri-apps/api/core';
 import { save, open as openDialog } from '@tauri-apps/plugin-dialog';
@@ -143,6 +144,10 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [vcInstalling, setVcInstalling] = useState(false);
   const [vcMessage, setVcMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [micInputDevices, setMicInputDevices] = useState<string[]>(['default']);
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'downloading' | 'up-to-date' | 'error'>('idle');
+  const [updateVersion, setUpdateVersion] = useState<string | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const [currentVersion, setCurrentVersion] = useState<string>('');
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const profile = data?.profiles.find(p => p.id === data.settings.activeProfileId);
@@ -157,7 +162,11 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       invoke<string[]>('list_audio_input_devices').then(setMicInputDevices).catch(() => setMicInputDevices(['default']));
       invoke<string>('get_app_data_dir').then(setAppDataDir).catch(() => {});
       invoke<string[]>('check_virtual_cable').then(setVirtualCables).catch(() => setVirtualCables([]));
+      invoke<string>('get_current_version').then(setCurrentVersion).catch(() => setCurrentVersion('?'));
       setVcMessage(null);
+      setUpdateStatus('idle');
+      setUpdateVersion(null);
+      setUpdateError(null);
     }
   }, [open, data]);
 
@@ -271,6 +280,7 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           <Divider sx={{ my: 0.75 }} />
           {([
             [5, 'Sauvegarde', <FileDownload key="s" sx={{ fontSize: 17 }} />],
+            [6, 'Mise à jour', <SystemUpdateAlt key="u" sx={{ fontSize: 17 }} />],
           ] as [number, string, React.ReactNode][]).map(([idx, label, icon]) => (
             <ListItemButton key={idx} selected={tab === idx} onClick={() => setTab(idx)} sx={{ borderRadius: '8px', py: 0.75, px: 1.25, minHeight: 36, gap: 1, '&.Mui-selected': { bgcolor: 'rgba(124, 92, 252, 0.12)', color: 'primary.main', '&:hover': { bgcolor: 'rgba(124, 92, 252, 0.16)' } } }}>
               {icon}
@@ -571,6 +581,86 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               <Button variant="outlined" startIcon={<FileUpload />} onClick={handleImport} disabled={ieLoading} fullWidth sx={{ py: 2, borderRadius: 2 }}>Importer</Button>
             </Box>
             <Typography variant="caption" color="text.secondary">L'import remplacera toutes vos données actuelles. Pensez à exporter d'abord en guise de sauvegarde.</Typography>
+          </>
+        )}
+
+        {tab === 6 && (
+          <>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Mise à jour</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="body2" color="text.secondary">Version actuelle :</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>v{currentVersion}</Typography>
+            </Box>
+            <Divider />
+            {updateStatus === 'up-to-date' && (
+              <Alert severity="success" sx={{ fontSize: '0.8rem' }}>Vous êtes à jour !</Alert>
+            )}
+            {updateStatus === 'error' && (
+              <Alert severity="error" sx={{ fontSize: '0.8rem' }}>{updateError}</Alert>
+            )}
+            {updateVersion && updateStatus !== 'downloading' && (
+              <Alert severity="info" sx={{ fontSize: '0.8rem' }}>
+                Nouvelle version disponible : <strong>v{updateVersion}</strong>
+              </Alert>
+            )}
+            {updateStatus === 'downloading' && (
+              <>
+                <Alert severity="info" sx={{ fontSize: '0.8rem' }}>Téléchargement et installation de la v{updateVersion}...</Alert>
+                <LinearProgress />
+              </>
+            )}
+            {updateStatus === 'checking' && <LinearProgress />}
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Button
+                variant="outlined"
+                startIcon={<SystemUpdateAlt />}
+                onClick={async () => {
+                  setUpdateStatus('checking');
+                  setUpdateError(null);
+                  setUpdateVersion(null);
+                  try {
+                    const result = await invoke<string>('check_for_updates');
+                    if (result === 'up-to-date') {
+                      setUpdateStatus('up-to-date');
+                    } else {
+                      setUpdateVersion(result);
+                      setUpdateStatus('idle');
+                    }
+                  } catch (e) {
+                    setUpdateStatus('error');
+                    setUpdateError(`${e}`);
+                  }
+                }}
+                disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
+                fullWidth
+                sx={{ py: 1.5, borderRadius: 2 }}
+              >
+                {updateStatus === 'checking' ? 'Vérification...' : 'Vérifier les mises à jour'}
+              </Button>
+              {updateVersion && (
+                <Button
+                  variant="contained"
+                  onClick={async () => {
+                    setUpdateStatus('downloading');
+                    setUpdateError(null);
+                    try {
+                      await invoke('download_and_apply_update');
+                    } catch (e) {
+                      setUpdateStatus('error');
+                      setUpdateError(`${e}`);
+                    }
+                  }}
+                  disabled={updateStatus === 'downloading'}
+                  fullWidth
+                  sx={{ py: 1.5, borderRadius: 2 }}
+                >
+                  {updateStatus === 'downloading' ? 'Installation...' : `Installer v${updateVersion}`}
+                </Button>
+              )}
+            </Box>
+            <Typography variant="caption" color="text.secondary">
+              Les mises à jour sont téléchargées depuis GitHub. L'application redémarrera automatiquement après l'installation.
+            </Typography>
           </>
         )}
 

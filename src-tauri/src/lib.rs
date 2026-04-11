@@ -149,6 +149,9 @@ pub fn run() {
             commands::get_app_data_dir,
             commands::export_data,
             commands::import_data,
+            commands::get_current_version,
+            commands::check_for_updates,
+            commands::download_and_apply_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running TomBoard");

@@ -1257,3 +1257,41 @@ pub fn set_noise_suppression(enabled: bool, state: State<MicPassthroughState>) -
     Ok(())
 }
 
+// ── Update Commands ──
+
+const GITHUB_RELEASES_URL: &str = "https://github.com/Thomas-TP/TomBoard/releases/latest/download";
+
+#[tauri::command]
+pub fn get_current_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
+
+#[tauri::command]
+pub fn check_for_updates() -> Result<String, String> {
+    let source = velopack::sources::HttpSource::new(GITHUB_RELEASES_URL);
+    let um = velopack::UpdateManager::new(source, None, None)
+        .map_err(|e| format!("L'application n'est pas installée via l'installeur : {}", e))?;
+    match um.check_for_updates() {
+        Ok(velopack::UpdateCheck::UpdateAvailable(info)) => {
+            Ok(format!("{}", info.TargetFullRelease.Version))
+        }
+        Ok(_) => Ok("up-to-date".to_string()),
+        Err(e) => Err(format!("Erreur lors de la vérification : {}", e)),
+    }
+}
+
+#[tauri::command]
+pub fn download_and_apply_update() -> Result<(), String> {
+    let source = velopack::sources::HttpSource::new(GITHUB_RELEASES_URL);
+    let um = velopack::UpdateManager::new(source, None, None)
+        .map_err(|e| format!("L'application n'est pas installée via l'installeur : {}", e))?;
+    match um.check_for_updates().map_err(|e| e.to_string())? {
+        velopack::UpdateCheck::UpdateAvailable(info) => {
+            um.download_updates(&info, None).map_err(|e| e.to_string())?;
+            um.apply_updates_and_restart(&info.TargetFullRelease).map_err(|e| e.to_string())?;
+            Ok(())
+        }
+        _ => Err("Aucune mise à jour disponible.".to_string()),
+    }
+}
+
