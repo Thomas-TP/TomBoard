@@ -131,6 +131,7 @@ export default function StatusBar() {
 
       {/* Master Volume */}
       <Box
+        data-tour="volume"
         sx={{
           display: 'flex',
           alignItems: 'center',

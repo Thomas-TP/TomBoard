@@ -1,31 +1,23 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Typography,
   Button,
   IconButton,
   Fade,
-  Grow,
-  Chip,
-  LinearProgress,
 } from '@mui/material';
 import {
-  MusicNote,
+  Add,
   Mic,
-  Category,
-  Settings,
   LibraryMusic,
-  RecordVoiceOver,
-  DragIndicator,
-  Keyboard,
+  Settings,
+  Category,
+  VolumeUp,
   ArrowForward,
   ArrowBack,
   Close,
   CheckCircle,
   RocketLaunch,
-  VolumeUp,
-  CloudDownload,
-  Tune,
 } from '@mui/icons-material';
 import TomBoardLogo from './TomBoardLogo';
 
@@ -33,128 +25,160 @@ interface OnboardingProps {
   onComplete: () => void;
 }
 
-interface Step {
+type TooltipPosition = 'bottom' | 'top' | 'left' | 'right';
+
+interface TourStep {
+  /** data-tour attribute value of the target element */
+  target: string | null;
   icon: React.ReactNode;
   title: string;
-  subtitle: string;
   description: string;
-  features: { icon: React.ReactNode; text: string }[];
   color: string;
   gradient: string;
+  position: TooltipPosition;
 }
 
-const STEPS: Step[] = [
+const STEPS: TourStep[] = [
   {
-    icon: <RocketLaunch sx={{ fontSize: 36 }} />,
-    title: 'Bienvenue sur TomBoard',
-    subtitle: 'Le soundboard ultime',
-    description:
-      'TomBoard est votre compagnon audio pour le streaming, le gaming et bien plus encore. Découvrons ensemble comment l\'utiliser !',
-    features: [
-      { icon: <MusicNote sx={{ fontSize: 16 }} />, text: 'Sons instantanés en un clic' },
-      { icon: <Mic sx={{ fontSize: 16 }} />, text: 'Changeur de voix en temps réel' },
-      { icon: <RecordVoiceOver sx={{ fontSize: 16 }} />, text: 'Synthèse vocale intégrée' },
-    ],
+    target: null,
+    icon: <RocketLaunch sx={{ fontSize: 28 }} />,
+    title: 'Bienvenue sur TomBoard !',
+    description: 'Votre soundboard ultime pour le streaming, le gaming et la communication. Suivez ce guide rapide pour découvrir toutes les fonctionnalités.',
     color: '#7C5CFC',
     gradient: 'linear-gradient(135deg, #7C5CFC 0%, #B347EA 100%)',
+    position: 'bottom',
   },
   {
-    icon: <VolumeUp sx={{ fontSize: 36 }} />,
-    title: 'Ajouter des sons',
-    subtitle: 'Trois façons d\'ajouter',
-    description:
-      'Cliquez sur le bouton  +  dans la barre supérieure pour ouvrir la fenêtre d\'ajout. Vous pouvez :',
-    features: [
-      { icon: <MusicNote sx={{ fontSize: 16 }} />, text: 'Importer un fichier audio ou vidéo (l\'audio sera extrait)' },
-      { icon: <Mic sx={{ fontSize: 16 }} />, text: 'Enregistrer directement depuis votre micro' },
-      { icon: <RecordVoiceOver sx={{ fontSize: 16 }} />, text: 'Générer un son par synthèse vocale (TTS)' },
-    ],
-    color: '#00D4AA',
-    gradient: 'linear-gradient(135deg, #00D4AA 0%, #00B4D8 100%)',
+    target: 'add-sound',
+    icon: <Add sx={{ fontSize: 28 }} />,
+    title: 'Ajouter un son',
+    description: 'Cliquez ici pour importer un fichier audio, enregistrer depuis votre micro, ou générer un son par synthèse vocale.',
+    color: '#7C5CFC',
+    gradient: 'linear-gradient(135deg, #7C5CFC 0%, #B347EA 100%)',
+    position: 'bottom',
   },
   {
-    icon: <CloudDownload sx={{ fontSize: 36 }} />,
+    target: 'library',
+    icon: <LibraryMusic sx={{ fontSize: 28 }} />,
     title: 'Bibliothèque en ligne',
-    subtitle: 'Des milliers de sons',
-    description:
-      'Cliquez sur l\'icône de bibliothèque 📚 pour rechercher et télécharger des sons depuis Myinstants. Prévisualisez-les avant de les ajouter.',
-    features: [
-      { icon: <LibraryMusic sx={{ fontSize: 16 }} />, text: 'Recherche par mots-clés avec catégories' },
-      { icon: <VolumeUp sx={{ fontSize: 16 }} />, text: 'Prévisualisation avant téléchargement' },
-      { icon: <CloudDownload sx={{ fontSize: 16 }} />, text: 'Ajout direct à votre soundboard' },
-    ],
+    description: 'Recherchez et téléchargez des milliers de sons depuis Myinstants. Prévisualisez-les avant de les ajouter.',
     color: '#FF6B6B',
     gradient: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
+    position: 'bottom',
   },
   {
-    icon: <Category sx={{ fontSize: 36 }} />,
-    title: 'Catégories & Organisation',
-    subtitle: 'Glisser-déposer',
-    description:
-      'Organisez vos sons par catégories avec des icônes et couleurs. Glissez-déposez un son sur une catégorie dans la barre pour le déplacer.',
-    features: [
-      { icon: <DragIndicator sx={{ fontSize: 16 }} />, text: 'Drag & Drop des sons sur les catégories' },
-      { icon: <Category sx={{ fontSize: 16 }} />, text: 'Créez des catégories personnalisées (Paramètres > Catégories)' },
-      { icon: <Keyboard sx={{ fontSize: 16 }} />, text: 'Assignez des raccourcis clavier à chaque son' },
-    ],
-    color: '#FFB800',
-    gradient: 'linear-gradient(135deg, #FFB800 0%, #FF6B00 100%)',
-  },
-  {
-    icon: <Tune sx={{ fontSize: 36 }} />,
-    title: 'Changeur de voix & Audio',
-    subtitle: 'Effets en temps réel',
-    description:
-      'Cliquez sur l\'icône micro 🎤 dans la barre supérieure pour ouvrir le changeur de voix. Configurez une sortie secondaire (VB-Cable) pour envoyer l\'audio dans Discord ou Teams.',
-    features: [
-      { icon: <Mic sx={{ fontSize: 16 }} />, text: 'Presets de voix : Robot, Chipmunk, Radio, Dark…' },
-      { icon: <VolumeUp sx={{ fontSize: 16 }} />, text: 'Double sortie : haut-parleurs + micro virtuel' },
-      { icon: <RecordVoiceOver sx={{ fontSize: 16 }} />, text: 'Suppression de bruit IA intégrée' },
-    ],
+    target: 'voice-changer',
+    icon: <Mic sx={{ fontSize: 28 }} />,
+    title: 'Changeur de voix',
+    description: 'Activez des effets vocaux en temps réel : Robot, Chipmunk, Radio, Dark… Envoyez votre voix modifiée dans Discord via VB-Cable.',
     color: '#E040FB',
     gradient: 'linear-gradient(135deg, #E040FB 0%, #7C5CFC 100%)',
+    position: 'bottom',
   },
   {
-    icon: <Settings sx={{ fontSize: 36 }} />,
-    title: 'Paramètres & Profils',
-    subtitle: 'Personnalisez tout',
-    description:
-      'Accédez aux paramètres via l\'icône ⚙️. Créez plusieurs profils pour différentes situations et basculez instantanément.',
-    features: [
-      { icon: <Settings sx={{ fontSize: 16 }} />, text: 'Audio, Communication, Catégories, Profils, Sauvegarde' },
-      { icon: <Category sx={{ fontSize: 16 }} />, text: 'Profils multiples avec switch rapide depuis la barre' },
-      { icon: <CloudDownload sx={{ fontSize: 16 }} />, text: 'Import/Export pour sauvegarder vos données' },
-    ],
+    target: 'categories',
+    icon: <Category sx={{ fontSize: 28 }} />,
+    title: 'Catégories & Organisation',
+    description: 'Organisez vos sons par catégories. Glissez-déposez un son directement sur une catégorie pour le déplacer.',
+    color: '#FFB800',
+    gradient: 'linear-gradient(135deg, #FFB800 0%, #FF6B00 100%)',
+    position: 'bottom',
+  },
+  {
+    target: 'settings',
+    icon: <Settings sx={{ fontSize: 28 }} />,
+    title: 'Paramètres',
+    description: 'Configurez l\'audio, les profils, les raccourcis, le thème et bien plus. Créez plusieurs profils pour différentes situations.',
     color: '#00B0FF',
     gradient: 'linear-gradient(135deg, #00B0FF 0%, #0091EA 100%)',
+    position: 'bottom',
+  },
+  {
+    target: 'volume',
+    icon: <VolumeUp sx={{ fontSize: 28 }} />,
+    title: 'Volume principal',
+    description: 'Contrôlez le volume global ici. La barre de statut affiche aussi les sons en cours de lecture avec un visualiseur en temps réel.',
+    color: '#00D4AA',
+    gradient: 'linear-gradient(135deg, #00D4AA 0%, #00B4D8 100%)',
+    position: 'top',
   },
 ];
 
+function getTooltipStyle(
+  rect: DOMRect | null,
+  position: TooltipPosition,
+): React.CSSProperties {
+  if (!rect) {
+    return {
+      position: 'fixed',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+    };
+  }
+
+  const gap = 16;
+  const base: React.CSSProperties = { position: 'fixed' };
+
+  switch (position) {
+    case 'bottom':
+      return { ...base, top: rect.bottom + gap, left: rect.left + rect.width / 2, transform: 'translateX(-50%)' };
+    case 'top':
+      return { ...base, bottom: window.innerHeight - rect.top + gap, left: rect.left + rect.width / 2, transform: 'translateX(-50%)' };
+    case 'left':
+      return { ...base, top: rect.top + rect.height / 2, right: window.innerWidth - rect.left + gap, transform: 'translateY(-50%)' };
+    case 'right':
+      return { ...base, top: rect.top + rect.height / 2, left: rect.right + gap, transform: 'translateY(-50%)' };
+  }
+}
+
 export default function Onboarding({ onComplete }: OnboardingProps) {
   const [currentStep, setCurrentStep] = useState(0);
-  const [animating, setAnimating] = useState(true);
+  const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const [visible, setVisible] = useState(true);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   const step = STEPS[currentStep];
-  const progress = ((currentStep + 1) / STEPS.length) * 100;
   const isLast = currentStep === STEPS.length - 1;
+  const isWelcome = step.target === null;
 
+  // Find and measure target element
   useEffect(() => {
-    setAnimating(false);
-    const t = setTimeout(() => setAnimating(true), 50);
-    return () => clearTimeout(t);
-  }, [currentStep]);
+    if (!step.target) {
+      setTargetRect(null);
+      return;
+    }
+    const el = document.querySelector(`[data-tour="${step.target}"]`);
+    if (!el) {
+      setTargetRect(null);
+      return;
+    }
+    const measure = () => setTargetRect(el.getBoundingClientRect());
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [currentStep, step.target]);
+
+  // Fade transition between steps
+  const goTo = useCallback((idx: number) => {
+    setVisible(false);
+    setTimeout(() => {
+      setCurrentStep(idx);
+      setVisible(true);
+    }, 200);
+  }, []);
 
   const next = useCallback(() => {
     if (isLast) {
       onComplete();
     } else {
-      setCurrentStep(s => s + 1);
+      goTo(currentStep + 1);
     }
-  }, [isLast, onComplete]);
+  }, [isLast, onComplete, currentStep, goTo]);
 
   const prev = useCallback(() => {
-    if (currentStep > 0) setCurrentStep(s => s - 1);
-  }, [currentStep]);
+    if (currentStep > 0) goTo(currentStep - 1);
+  }, [currentStep, goTo]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -167,294 +191,193 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     return () => window.removeEventListener('keydown', handler);
   }, [next, prev, onComplete]);
 
+  // Spotlight cutout dimensions
+  const pad = 8;
+  const spotX = targetRect ? targetRect.left - pad : 0;
+  const spotY = targetRect ? targetRect.top - pad : 0;
+  const spotW = targetRect ? targetRect.width + pad * 2 : 0;
+  const spotH = targetRect ? targetRect.height + pad * 2 : 0;
+
   return (
-    <Box
-      sx={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        bgcolor: 'rgba(0, 0, 0, 0.85)',
-        backdropFilter: 'blur(20px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      {/* Background decorative blobs */}
-      <Box
-        sx={{
-          position: 'absolute',
-          width: 400,
-          height: 400,
-          borderRadius: '50%',
-          background: step.gradient,
-          opacity: 0.06,
-          filter: 'blur(80px)',
-          top: '10%',
-          left: '10%',
-          transition: 'all 0.6s ease',
-        }}
-      />
-      <Box
-        sx={{
-          position: 'absolute',
-          width: 300,
-          height: 300,
-          borderRadius: '50%',
-          background: step.gradient,
-          opacity: 0.04,
-          filter: 'blur(60px)',
-          bottom: '15%',
-          right: '15%',
-          transition: 'all 0.6s ease',
-        }}
-      />
+    <Box ref={overlayRef} sx={{ position: 'fixed', inset: 0, zIndex: 9999 }}>
+      {/* SVG overlay with spotlight cutout */}
+      <svg
+        style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+      >
+        <defs>
+          <mask id="tour-mask">
+            <rect x="0" y="0" width="100%" height="100%" fill="white" />
+            {targetRect && (
+              <rect
+                x={spotX}
+                y={spotY}
+                width={spotW}
+                height={spotH}
+                rx={12}
+                fill="black"
+              />
+            )}
+          </mask>
+        </defs>
+        <rect
+          x="0" y="0" width="100%" height="100%"
+          fill="rgba(0,0,0,0.72)"
+          mask="url(#tour-mask)"
+          style={{ pointerEvents: 'auto' }}
+          onClick={(e) => e.stopPropagation()}
+        />
+      </svg>
+
+      {/* Highlight ring around target */}
+      {targetRect && (
+        <Box
+          sx={{
+            position: 'fixed',
+            left: spotX,
+            top: spotY,
+            width: spotW,
+            height: spotH,
+            borderRadius: '12px',
+            border: `2px solid ${step.color}`,
+            boxShadow: `0 0 0 4px ${step.color}25, 0 0 24px ${step.color}30`,
+            pointerEvents: 'none',
+            transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+            animation: 'tour-pulse 2s ease-in-out infinite',
+            '@keyframes tour-pulse': {
+              '0%, 100%': { boxShadow: `0 0 0 4px ${step.color}25, 0 0 24px ${step.color}30` },
+              '50%': { boxShadow: `0 0 0 6px ${step.color}35, 0 0 32px ${step.color}45` },
+            },
+          }}
+        />
+      )}
 
       {/* Skip button */}
       <IconButton
         onClick={onComplete}
         sx={{
-          position: 'absolute',
+          position: 'fixed',
           top: 56,
           right: 16,
+          zIndex: 10001,
           color: 'rgba(255,255,255,0.5)',
-          '&:hover': { color: 'rgba(255,255,255,0.8)' },
+          '&:hover': { color: 'rgba(255,255,255,0.85)' },
         }}
       >
         <Close />
       </IconButton>
 
-      {/* Progress bar */}
-      <Box sx={{ position: 'absolute', top: 46, left: 0, right: 0, px: 0 }}>
-        <LinearProgress
-          variant="determinate"
-          value={progress}
-          sx={{
-            height: 3,
-            bgcolor: 'rgba(255,255,255,0.06)',
-            '& .MuiLinearProgress-bar': {
-              background: step.gradient,
-              transition: 'transform 0.4s ease, background 0.4s ease',
-            },
-          }}
-        />
-      </Box>
-
-      {/* Main content card */}
-      <Fade in={animating} timeout={400}>
+      {/* Tooltip card */}
+      <Fade in={visible} timeout={250}>
         <Box
           sx={{
-            maxWidth: 520,
-            width: '90%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 3,
+            ...getTooltipStyle(targetRect, step.position),
+            zIndex: 10000,
+            maxWidth: 360,
+            minWidth: 280,
+            bgcolor: '#1A1D24',
+            borderRadius: '16px',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: `0 12px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)`,
+            overflow: 'hidden',
           }}
         >
-          {/* Step indicator */}
-          <Box sx={{ display: 'flex', gap: 0.75, mb: -1 }}>
-            {STEPS.map((_, i) => (
+          {/* Color accent bar */}
+          <Box sx={{ height: 3, background: step.gradient }} />
+
+          <Box sx={{ p: 2.5 }}>
+            {/* Icon + Title row */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
               <Box
-                key={i}
-                onClick={() => setCurrentStep(i)}
                 sx={{
-                  width: i === currentStep ? 24 : 8,
-                  height: 8,
-                  borderRadius: 4,
-                  bgcolor: i === currentStep ? step.color : 'rgba(255,255,255,0.15)',
-                  transition: 'all 0.3s ease',
-                  cursor: 'pointer',
-                  '&:hover': {
-                    bgcolor: i === currentStep ? step.color : 'rgba(255,255,255,0.3)',
-                  },
-                }}
-              />
-            ))}
-          </Box>
-
-          {/* Logo + Icon */}
-          <Grow in={animating} timeout={500}>
-            <Box
-              sx={{
-                width: 80,
-                height: 80,
-                borderRadius: '22px',
-                background: step.gradient,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                boxShadow: `0 8px 32px ${step.color}40`,
-                transition: 'all 0.4s ease',
-              }}
-            >
-              {currentStep === 0 ? <TomBoardLogo size={48} /> : step.icon}
-            </Box>
-          </Grow>
-
-          {/* Title */}
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography
-              variant="h4"
-              sx={{
-                fontWeight: 800,
-                color: 'white',
-                fontSize: '1.6rem',
-                letterSpacing: '-0.02em',
-                mb: 0.5,
-              }}
-            >
-              {step.title}
-            </Typography>
-            <Chip
-              label={step.subtitle}
-              size="small"
-              sx={{
-                background: `${step.color}20`,
-                color: step.color,
-                fontWeight: 600,
-                fontSize: '0.72rem',
-                height: 24,
-                border: `1px solid ${step.color}30`,
-              }}
-            />
-          </Box>
-
-          {/* Description */}
-          <Typography
-            sx={{
-              color: 'rgba(255,255,255,0.7)',
-              textAlign: 'center',
-              fontSize: '0.88rem',
-              lineHeight: 1.6,
-              maxWidth: 420,
-            }}
-          >
-            {step.description}
-          </Typography>
-
-          {/* Feature list */}
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 1.25,
-              width: '100%',
-              maxWidth: 400,
-            }}
-          >
-            {step.features.map((f, i) => (
-              <Grow key={i} in={animating} timeout={600 + i * 150}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    px: 2,
-                    py: 1.25,
-                    borderRadius: '12px',
-                    bgcolor: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      bgcolor: 'rgba(255,255,255,0.07)',
-                      borderColor: `${step.color}30`,
-                    },
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: '8px',
-                      background: `${step.color}18`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: step.color,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {f.icon}
-                  </Box>
-                  <Typography
-                    sx={{
-                      color: 'rgba(255,255,255,0.85)',
-                      fontSize: '0.82rem',
-                      fontWeight: 500,
-                    }}
-                  >
-                    {f.text}
-                  </Typography>
-                </Box>
-              </Grow>
-            ))}
-          </Box>
-
-          {/* Navigation buttons */}
-          <Box sx={{ display: 'flex', gap: 1.5, mt: 1, width: '100%', maxWidth: 400 }}>
-            {currentStep > 0 && (
-              <Button
-                onClick={prev}
-                variant="outlined"
-                startIcon={<ArrowBack sx={{ fontSize: 16 }} />}
-                sx={{
+                  width: 44,
+                  height: 44,
                   borderRadius: '12px',
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  fontSize: '0.85rem',
-                  py: 1,
-                  px: 2.5,
-                  borderColor: 'rgba(255,255,255,0.15)',
-                  color: 'rgba(255,255,255,0.7)',
-                  '&:hover': {
-                    borderColor: 'rgba(255,255,255,0.3)',
-                    bgcolor: 'rgba(255,255,255,0.05)',
-                  },
+                  background: step.gradient,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  flexShrink: 0,
+                  boxShadow: `0 4px 16px ${step.color}30`,
                 }}
               >
-                Retour
-              </Button>
-            )}
-            <Button
-              onClick={next}
-              variant="contained"
-              endIcon={
-                isLast ? (
-                  <CheckCircle sx={{ fontSize: 18 }} />
-                ) : (
-                  <ArrowForward sx={{ fontSize: 16 }} />
-                )
-              }
-              sx={{
-                flex: 1,
-                borderRadius: '12px',
-                textTransform: 'none',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                py: 1.2,
-                background: step.gradient,
-                boxShadow: `0 4px 16px ${step.color}30`,
-                '&:hover': {
-                  boxShadow: `0 6px 24px ${step.color}50`,
-                },
-              }}
-            >
-              {isLast ? 'Commencer !' : 'Suivant'}
-            </Button>
-          </Box>
+                {isWelcome ? <TomBoardLogo size={28} /> : step.icon}
+              </Box>
+              <Box>
+                <Typography sx={{ fontWeight: 700, color: 'white', fontSize: '0.95rem', lineHeight: 1.2 }}>
+                  {step.title}
+                </Typography>
+                <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem', fontWeight: 500 }}>
+                  Étape {currentStep + 1} / {STEPS.length}
+                </Typography>
+              </Box>
+            </Box>
 
-          {/* Keyboard hint */}
-          <Typography
-            sx={{
-              color: 'rgba(255,255,255,0.25)',
-              fontSize: '0.68rem',
-              textAlign: 'center',
-            }}
-          >
-            ← → pour naviguer · Entrée pour continuer · Échap pour passer
-          </Typography>
+            {/* Description */}
+            <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.82rem', lineHeight: 1.55, mb: 2 }}>
+              {step.description}
+            </Typography>
+
+            {/* Step dots */}
+            <Box sx={{ display: 'flex', gap: 0.5, mb: 2 }}>
+              {STEPS.map((_, i) => (
+                <Box
+                  key={i}
+                  sx={{
+                    width: i === currentStep ? 20 : 6,
+                    height: 6,
+                    borderRadius: 3,
+                    bgcolor: i === currentStep ? step.color : 'rgba(255,255,255,0.12)',
+                    transition: 'all 0.3s ease',
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: i === currentStep ? step.color : 'rgba(255,255,255,0.25)' },
+                  }}
+                  onClick={() => goTo(i)}
+                />
+              ))}
+            </Box>
+
+            {/* Navigation buttons */}
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              {currentStep > 0 && (
+                <Button
+                  onClick={prev}
+                  size="small"
+                  startIcon={<ArrowBack sx={{ fontSize: 14 }} />}
+                  sx={{
+                    borderRadius: '10px',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    fontSize: '0.78rem',
+                    color: 'rgba(255,255,255,0.6)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    px: 1.5,
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.2)' },
+                  }}
+                >
+                  Retour
+                </Button>
+              )}
+              <Button
+                onClick={next}
+                size="small"
+                variant="contained"
+                endIcon={isLast ? <CheckCircle sx={{ fontSize: 16 }} /> : <ArrowForward sx={{ fontSize: 14 }} />}
+                sx={{
+                  flex: 1,
+                  borderRadius: '10px',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  background: step.gradient,
+                  boxShadow: `0 4px 12px ${step.color}30`,
+                  '&:hover': { boxShadow: `0 6px 20px ${step.color}50` },
+                }}
+              >
+                {isLast ? 'C\'est parti !' : 'Suivant'}
+              </Button>
+            </Box>
+          </Box>
         </Box>
       </Fade>
     </Box>

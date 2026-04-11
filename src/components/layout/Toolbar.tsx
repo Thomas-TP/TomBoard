@@ -153,6 +153,7 @@ export default function Toolbar({ dragOverCategory, isDragging }: ToolbarProps) 
     >
       {/* Row 1: Categories */}
       <Box
+        data-tour="categories"
         sx={{
           display: 'flex',
           gap: 0.75,

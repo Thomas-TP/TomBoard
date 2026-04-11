@@ -40,10 +40,9 @@ pub fn run() {
                 .item(&quit_item)
                 .build()?;
 
-            // Build tray icon
-            let icon = Image::from_path("icons/icon.png").unwrap_or_else(|_| {
-                Image::from_path("icons/32x32.png").expect("Failed to load tray icon")
-            });
+            // Build tray icon (embedded at compile time to avoid path issues in production)
+            let icon = Image::from_bytes(include_bytes!("../icons/32x32.png"))
+                .expect("Failed to load tray icon");
 
             let _tray = TrayIconBuilder::new()
                 .icon(icon)

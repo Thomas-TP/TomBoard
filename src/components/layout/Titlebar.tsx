@@ -213,6 +213,7 @@ export default function Titlebar({
       <Box sx={{ display: 'flex', gap: 0.25, WebkitAppRegion: 'no-drag' }}>
         <Tooltip title="Ajouter un son" arrow>
           <IconButton
+            data-tour="add-sound"
             onClick={onAddClick}
             size="small"
             sx={{
@@ -229,13 +230,13 @@ export default function Titlebar({
         </Tooltip>
 
         <Tooltip title="Changeur de voix" arrow>
-          <IconButton onClick={onVoiceChangerClick} size="small" sx={{ color: 'text.secondary', width: 30, height: 30, borderRadius: '8px' }}>
+          <IconButton data-tour="voice-changer" onClick={onVoiceChangerClick} size="small" sx={{ color: 'text.secondary', width: 30, height: 30, borderRadius: '8px' }}>
             <MicIcon sx={{ fontSize: 16 }} />
           </IconButton>
         </Tooltip>
 
         <Tooltip title="Bibliothèque" arrow>
-          <IconButton onClick={onLibraryClick} size="small" sx={{ color: 'text.secondary', width: 30, height: 30, borderRadius: '8px' }}>
+          <IconButton data-tour="library" onClick={onLibraryClick} size="small" sx={{ color: 'text.secondary', width: 30, height: 30, borderRadius: '8px' }}>
             <LibraryMusic sx={{ fontSize: 16 }} />
           </IconButton>
         </Tooltip>
@@ -247,7 +248,7 @@ export default function Titlebar({
         </Tooltip>
 
         <Tooltip title="Paramètres" arrow>
-          <IconButton onClick={onSettingsClick} size="small" sx={{ color: 'text.secondary', width: 30, height: 30, borderRadius: '8px' }}>
+          <IconButton data-tour="settings" onClick={onSettingsClick} size="small" sx={{ color: 'text.secondary', width: 30, height: 30, borderRadius: '8px' }}>
             <Settings sx={{ fontSize: 16 }} />
           </IconButton>
         </Tooltip>
