@@ -19,6 +19,7 @@ import { Sound } from '../../types';
 import { useAppStore } from '../../stores/appStore';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useI18n } from '../../i18n/I18nProvider';
 
 interface SoundCardProps {
   sound: Sound;
@@ -38,6 +39,7 @@ export default function SoundCard({ sound, onContextMenu, onEdit, isDragActive, 
   const updateSound = useAppStore(s => s.updateSound);
   const setVolume = useAppStore(s => s.setVolume);
   const playingIds = useAppStore(s => s.playingIds);
+  const { t } = useI18n();
 
   const {
     attributes,
@@ -94,7 +96,7 @@ export default function SoundCard({ sound, onContextMenu, onEdit, isDragActive, 
       {/* Favorite button */}
       <IconButton
         size="small"
-        aria-label={sound.isFavorite ? `Retirer ${sound.name} des favoris` : `Ajouter ${sound.name} aux favoris`}
+        aria-label={sound.isFavorite ? `${t('removeFromFavorites')} ${sound.name}` : `${t('addToFavorites')} ${sound.name}`}
         onClick={(e) => {
           e.stopPropagation();
           toggleFavorite(sound.id);
@@ -118,7 +120,7 @@ export default function SoundCard({ sound, onContextMenu, onEdit, isDragActive, 
       {/* Delete button */}
       <IconButton
         size="small"
-        aria-label={`Supprimer ${sound.name}`}
+        aria-label={`${t('delete')} ${sound.name}`}
         onClick={(e) => {
           e.stopPropagation();
           deleteSound(sound.id);
@@ -142,7 +144,7 @@ export default function SoundCard({ sound, onContextMenu, onEdit, isDragActive, 
 
       <CardActionArea
         onClick={() => playSound(sound)}
-        aria-label={`${isPlaying ? 'Arrêter' : 'Jouer'} ${sound.name}`}
+        aria-label={`${isPlaying ? t('stop') : t('play')} ${sound.name}`}
         sx={{
           p: 0,
           '& .MuiCardActionArea-focusHighlight': {

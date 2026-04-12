@@ -24,6 +24,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
 import { useAppStore, useFilteredSounds } from './stores/appStore';
 import { useHotkeyManager } from './hooks/useHotkeyManager';
+import { useI18n } from './i18n/I18nProvider';
 import { Sound } from './types';
 import {
   DndContext,
@@ -48,6 +49,7 @@ function App() {
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
   const [overlayMode, setOverlayMode] = useState(false);
   const [voiceChangerOpen, setVoiceChangerOpen] = useState(false);
+  const { t } = useI18n();
   const [changelogOpen, setChangelogOpen] = useState(false);
   const { updateAvailable, updating, applyUpdate, dismiss } = useUpdater();
 
@@ -446,7 +448,7 @@ function App() {
                 border: '2px dashed', borderColor: 'primary.main', borderRadius: 4,
                 px: 5, py: 4, textAlign: 'center', color: 'primary.main', fontWeight: 700, fontSize: '1.1rem',
               }}>
-                Déposer les fichiers audio ici
+                {t('dropFilesHere')}
               </Box>
             </Box>
           )}

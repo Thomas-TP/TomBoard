@@ -11,6 +11,7 @@ import {
 } from '@mui/icons-material';
 import { useAppStore } from '../../stores/appStore';
 import AudioVisualizer from '../sound/AudioVisualizer';
+import { useI18n } from '../../i18n/I18nProvider';
 
 export default function StatusBar() {
   const playingIds = useAppStore(s => s.playingIds);
@@ -19,6 +20,7 @@ export default function StatusBar() {
   const setMasterVolume = useAppStore(s => s.setMasterVolume);
   const toggleTheme = useAppStore(s => s.toggleTheme);
   const profile = data?.profiles.find(p => p.id === data.settings.activeProfileId);
+  const { t } = useI18n();
 
   const playingCount = playingIds.length;
   const playingNames = profile?.sounds
@@ -89,7 +91,7 @@ export default function StatusBar() {
               <PlayArrow sx={{ fontSize: 13, color: 'primary.main', flexShrink: 0 }} />
               {playingNames.join(' · ')}
             </Typography>
-            <Tooltip title="Tout arrêter" arrow>
+            <Tooltip title={t('stopAll')} arrow>
               <IconButton
                 onClick={stopAll}
                 size="small"
@@ -116,7 +118,7 @@ export default function StatusBar() {
               fontWeight: 500,
             }}
           >
-            Prêt — {profile?.sounds.length ?? 0} son{(profile?.sounds.length ?? 0) > 1 ? 's' : ''}
+            {t('ready')} — {profile?.sounds.length ?? 0} {(profile?.sounds.length ?? 0) > 1 ? t('soundCount').split(' | ')[1] : t('soundCount').split(' | ')[0]}
           </Typography>
         )}
       </Box>
@@ -152,7 +154,7 @@ export default function StatusBar() {
       </Tooltip>
 
       {/* Theme toggle */}
-      <Tooltip title={isDark ? 'Mode clair' : 'Mode sombre'} arrow>
+      <Tooltip title={isDark ? t('lightMode') : t('darkMode')} arrow>
         <IconButton
           onClick={toggleTheme}
           size="small"
@@ -198,7 +200,7 @@ export default function StatusBar() {
           max={1}
           step={0.01}
           size="small"
-          aria-label="Volume principal"
+          aria-label={t('masterVolume')}
           sx={{ width: 70 }}
         />
         <Typography

@@ -1,6 +1,6 @@
 [package]
 name = "tomboard"
-version = "0.3.0"
+version = "0.3.1"
 description = "Le soundboard ultime pour Windows"
 authors = ["Thomas-TP"]
 edition = "2021"
@@ -43,4 +43,5 @@ windows = { version = "0.54", features = [
 nnnoiseless = "0.5"
 velopack = "0.0"
 tiny_http = "0.12"
+tauri-plugin-single-instance = "2.4.1"
 

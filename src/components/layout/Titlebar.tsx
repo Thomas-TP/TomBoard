@@ -21,6 +21,7 @@ import {
 import TomBoardLogo from '../TomBoardLogo';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useAppStore } from '../../stores/appStore';
+import { useI18n } from '../../i18n/I18nProvider';
 
 const appWindow = getCurrentWindow();
 
@@ -43,6 +44,7 @@ export default function Titlebar({
 }: TitlebarProps) {
   const searchQuery = useAppStore(s => s.searchQuery);
   const setSearchQuery = useAppStore(s => s.setSearchQuery);
+  const { t } = useI18n();
 
   return (
     <Box
@@ -105,10 +107,10 @@ export default function Titlebar({
       >
         <Search sx={{ fontSize: 16, color: 'text.secondary', mr: 0.75, flexShrink: 0 }} />
         <InputBase
-          placeholder="Rechercher un son..."
+          placeholder={t('searchPlaceholder')}
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          inputProps={{ 'aria-label': 'Rechercher un son', id: 'search-input' }}
+          inputProps={{ 'aria-label': t('searchPlaceholder'), id: 'search-input' }}
           sx={{ flex: 1, fontSize: '0.78rem', py: 0.4, '& input::placeholder': { opacity: 0.45, fontSize: '0.78rem' } }}
         />
       </Box>
@@ -118,7 +120,7 @@ export default function Titlebar({
 
       {/* Action buttons */}
       <Box sx={{ display: 'flex', gap: 0.25, WebkitAppRegion: 'no-drag' }}>
-        <Tooltip title="Ajouter un son" arrow>
+        <Tooltip title={t('addSound')} arrow>
           <IconButton
             data-tour="add-sound"
             onClick={onAddClick}
@@ -136,31 +138,31 @@ export default function Titlebar({
           </IconButton>
         </Tooltip>
 
-        <Tooltip title="Changeur de voix" arrow>
+        <Tooltip title={t('voiceChanger')} arrow>
           <IconButton data-tour="voice-changer" onClick={onVoiceChangerClick} size="small" sx={{ color: 'text.secondary', width: 30, height: 30, borderRadius: '8px' }}>
             <MicIcon sx={{ fontSize: 16 }} />
           </IconButton>
         </Tooltip>
 
-        <Tooltip title="Bibliothèque" arrow>
+        <Tooltip title={t('library')} arrow>
           <IconButton data-tour="library" onClick={onLibraryClick} size="small" sx={{ color: 'text.secondary', width: 30, height: 30, borderRadius: '8px' }}>
             <LibraryMusic sx={{ fontSize: 16 }} />
           </IconButton>
         </Tooltip>
 
-        <Tooltip title="Mode compact" arrow>
+        <Tooltip title={t('compactMode')} arrow>
           <IconButton onClick={onOverlayClick} size="small" sx={{ color: 'text.secondary', width: 30, height: 30, borderRadius: '8px' }}>
             <PictureInPicture sx={{ fontSize: 15 }} />
           </IconButton>
         </Tooltip>
 
-        <Tooltip title="Notes de version" arrow>
+        <Tooltip title={t('changelog')} arrow>
           <IconButton onClick={onChangelogClick} size="small" sx={{ color: 'text.secondary', width: 30, height: 30, borderRadius: '8px' }}>
             <History sx={{ fontSize: 16 }} />
           </IconButton>
         </Tooltip>
 
-        <Tooltip title="Paramètres" arrow>
+        <Tooltip title={t('settings')} arrow>
           <IconButton data-tour="settings" onClick={onSettingsClick} size="small" sx={{ color: 'text.secondary', width: 30, height: 30, borderRadius: '8px' }}>
             <Settings sx={{ fontSize: 16 }} />
           </IconButton>
@@ -180,7 +182,7 @@ export default function Titlebar({
       >
         <IconButton
           size="small"
-          aria-label="Réduire"
+          aria-label={t('minimize')}
           onClick={() => appWindow.minimize()}
           sx={{
             borderRadius: '8px',
@@ -194,7 +196,7 @@ export default function Titlebar({
         </IconButton>
         <IconButton
           size="small"
-          aria-label="Agrandir"
+          aria-label={t('maximize')}
           onClick={() => appWindow.toggleMaximize()}
           sx={{
             borderRadius: '8px',
@@ -208,7 +210,7 @@ export default function Titlebar({
         </IconButton>
         <IconButton
           size="small"
-          aria-label="Fermer"
+          aria-label={t('close')}
           onClick={() => appWindow.close()}
           sx={{
             borderRadius: '8px',

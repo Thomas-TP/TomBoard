@@ -18,6 +18,7 @@ import {
   TrendingUp,
 } from '@mui/icons-material';
 import { useAppStore, SoundFilter, SoundSort } from '../../stores/appStore';
+import { useI18n } from '../../i18n/I18nProvider';
 import { useState } from 'react';
 import React from 'react';
 
@@ -30,6 +31,7 @@ export default function Toolbar() {
   const setActiveSort = useAppStore(s => s.setActiveSort);
 
   const [sortAnchor, setSortAnchor] = useState<HTMLElement | null>(null);
+  const { t } = useI18n();
 
   return (
     <Box
@@ -50,7 +52,7 @@ export default function Toolbar() {
           {([['favorites', '⭐', Star], ['looping', '🔁', Replay], ['recent', '🕐', Schedule], ['most-played', '🔥', TrendingUp]] as [SoundFilter, string, React.ComponentType<any>][]).map(([filter, , FilterIcon]) => {
             const isActive = activeFilter === filter;
             return (
-              <Tooltip key={filter} title={filter === 'favorites' ? 'Favoris' : filter === 'looping' ? 'Boucle' : filter === 'recent' ? 'Récents' : 'Top'} arrow>
+              <Tooltip key={filter} title={filter === 'favorites' ? t('favorites') : filter === 'looping' ? t('looping') : filter === 'recent' ? t('recent') : t('mostPlayed')} arrow>
                 <IconButton
                   size="small"
                   onClick={() => setActiveFilter(isActive ? 'all' : filter)}
@@ -74,7 +76,7 @@ export default function Toolbar() {
         </Box>
 
         {/* Sort */}
-        <Tooltip title="Trier" arrow>
+        <Tooltip title={t('sort')} arrow>
           <IconButton
             size="small"
             onClick={e => setSortAnchor(e.currentTarget)}
@@ -89,7 +91,7 @@ export default function Toolbar() {
           </IconButton>
         </Tooltip>
         <Menu anchorEl={sortAnchor} open={!!sortAnchor} onClose={() => setSortAnchor(null)}>
-          {([['order', 'Par défaut'], ['name', 'Nom (A-Z)'], ['recent', 'Plus récents'], ['most-played', 'Plus joués']] as [SoundSort, string][]).map(([sort, label]) => (
+          {([['order', t('sortByOrder')], ['name', t('sortByName')], ['recent', t('sortByRecent')], ['most-played', t('sortByMostPlayed')]] as [SoundSort, string][]).map(([sort, label]) => (
             <MenuItem
               key={sort}
               selected={activeSort === sort}
@@ -107,7 +109,7 @@ export default function Toolbar() {
           exclusive
           onChange={(_, v) => v && setViewMode(v)}
           size="small"
-          aria-label="Mode d'affichage"
+          aria-label={t('gridView')}
           sx={{
             bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)',
             borderRadius: '8px',
@@ -129,13 +131,13 @@ export default function Toolbar() {
             },
           }}
         >
-          <ToggleButton value="grid" aria-label="Vue grille">
+          <ToggleButton value="grid" aria-label={t('gridView')}>
             <GridView sx={{ fontSize: 15 }} />
           </ToggleButton>
-          <ToggleButton value="list" aria-label="Vue liste">
+          <ToggleButton value="list" aria-label={t('listView')}>
             <ViewList sx={{ fontSize: 15 }} />
           </ToggleButton>
-          <ToggleButton value="compact" aria-label="Vue compacte">
+          <ToggleButton value="compact" aria-label={t('compactView')}>
             <DensitySmall sx={{ fontSize: 15 }} />
           </ToggleButton>
         </ToggleButtonGroup>

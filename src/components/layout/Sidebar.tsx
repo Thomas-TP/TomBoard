@@ -26,6 +26,7 @@ import {
   Celebration,
 } from '@mui/icons-material';
 import { useAppStore } from '../../stores/appStore';
+import { useI18n } from '../../i18n/I18nProvider';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   apps: <Apps />,
@@ -58,6 +59,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
   const activeCategory = useAppStore(s => s.activeCategory);
   const setActiveCategory = useAppStore(s => s.setActiveCategory);
   const switchProfile = useAppStore(s => s.switchProfile);
+  const { t } = useI18n();
 
   const [width, setWidth] = useState(() => {
     const saved = localStorage.getItem('tomboard_sidebar_width');
@@ -80,7 +82,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
     if (isCollapsed) {
       hoverTimeoutRef.current = setTimeout(() => {
         onToggleCollapse?.();
-      }, 200);
+      }, 80);
     }
   }, [isCollapsed, onToggleCollapse]);
 
@@ -89,7 +91,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
     if (!isCollapsed && !isResizing) {
       hoverTimeoutRef.current = setTimeout(() => {
         onToggleCollapse?.();
-      }, 400);
+      }, 200);
     }
   }, [isCollapsed, isResizing, onToggleCollapse]);
 
@@ -148,7 +150,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
     >
     <Box
       component="nav"
-      aria-label="Navigation catégories et profils"
+      aria-label={`${t('categories')} & ${t('profiles')}`}
       sx={{
         width: displayWidth,
         minWidth: displayWidth,
@@ -159,28 +161,27 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        transition: isResizing ? 'none' : 'width 0.2s ease, min-width 0.2s ease',
+        transition: isResizing ? 'none' : 'width 0.15s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     >
 
       {/* Categories */}
-      {!isCollapsed && (
-        <Box sx={{ px: 2.5, pt: 1, pb: 1 }}>
-          <Typography
-            variant="overline"
-            color="text.secondary"
-            sx={{
-              fontWeight: 700,
-              fontSize: '0.6rem',
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Catégories
-          </Typography>
-        </Box>
-      )}
-      <List dense sx={{ px: isCollapsed ? 0.5 : 1.5, flex: 1 }} aria-label="Catégories">
+      <Box sx={{ px: isCollapsed ? 0 : 2.5, pt: 1, pb: isCollapsed ? 0 : 1, height: isCollapsed ? 0 : 'auto', overflow: 'hidden', opacity: isCollapsed ? 0 : 1, transition: 'all 0.15s ease' }}>
+        <Typography
+          variant="overline"
+          color="text.secondary"
+          sx={{
+            fontWeight: 700,
+            fontSize: '0.6rem',
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {t('categories')}
+        </Typography>
+      </Box>
+      <List dense sx={{ px: isCollapsed ? 0.5 : 1.5, flex: 1 }} aria-label={t('categories')}>
         {categories.map(cat => {
           const isActive = activeCategory === cat.id;
           const count = cat.id === 'all'
@@ -287,23 +288,22 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
       <Divider sx={{ mx: isCollapsed ? 0.5 : 2.5, opacity: 0.5 }} />
 
       {/* Profiles */}
-      {!isCollapsed && (
-        <Box sx={{ px: 2.5, pt: 1.5, pb: 0.5 }}>
-          <Typography
-            variant="overline"
-            color="text.secondary"
-            sx={{
-              fontWeight: 700,
-              fontSize: '0.6rem',
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Profils
-          </Typography>
-        </Box>
-      )}
-      <List dense sx={{ px: isCollapsed ? 0.5 : 1.5, pb: 2 }} aria-label="Profils">
+      <Box sx={{ px: isCollapsed ? 0 : 2.5, pt: isCollapsed ? 0 : 1.5, pb: isCollapsed ? 0 : 0.5, height: isCollapsed ? 0 : 'auto', overflow: 'hidden', opacity: isCollapsed ? 0 : 1, transition: 'all 0.15s ease' }}>
+        <Typography
+          variant="overline"
+          color="text.secondary"
+          sx={{
+            fontWeight: 700,
+            fontSize: '0.6rem',
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {t('profiles')}
+        </Typography>
+      </Box>
+      <List dense sx={{ px: isCollapsed ? 0.5 : 1.5, pb: 2 }} aria-label={t('profiles')}>
         {profiles.map(p => {
           const isActive = data?.settings.activeProfileId === p.id;
           return isCollapsed ? (

@@ -12,11 +12,12 @@ import {
   CircularProgress,
 } from '@mui/material';
 import NewReleasesIcon from '@mui/icons-material/NewReleases';
+import ReactMarkdown from 'react-markdown';
 
 interface ChangelogEntry {
   version: string;
   date: string;
-  changes: string[];
+  body: string;
 }
 
 interface Props {
@@ -46,10 +47,7 @@ export default function ChangelogDialog({ open, onClose, highlightVersion }: Pro
           releases.map(r => ({
             version: r.tag_name.replace(/^v/, ''),
             date: new Date(r.published_at).toLocaleDateString('fr-FR'),
-            changes: (r.body ?? '')
-              .split('\n')
-              .map(l => l.replace(/^[-*]\s*/, '').trim())
-              .filter(l => l.length > 0),
+            body: r.body ?? '',
           }))
         );
       })
@@ -101,15 +99,18 @@ export default function ChangelogDialog({ open, onClose, highlightVersion }: Pro
                   />
                 )}
               </Box>
-              {entry.changes.length > 0 ? (
-                <Box component="ul" sx={{ m: 0, pl: 2.5, '& li': { mb: 0.5 } }}>
-                  {entry.changes.map((change, j) => (
-                    <li key={j}>
-                      <Typography variant="body2" color="text.secondary">
-                        {change}
-                      </Typography>
-                    </li>
-                  ))}
+              {entry.body ? (
+                <Box
+                  sx={{
+                    '& h1, & h2, & h3': { fontSize: '0.9rem', fontWeight: 700, mt: 1, mb: 0.5, color: 'text.primary' },
+                    '& p': { fontSize: '0.82rem', color: 'text.secondary', my: 0.5, lineHeight: 1.6 },
+                    '& ul, & ol': { m: 0, pl: 2.5, '& li': { mb: 0.25, fontSize: '0.82rem', color: 'text.secondary' } },
+                    '& code': { fontSize: '0.78rem', bgcolor: 'action.hover', px: 0.5, py: 0.1, borderRadius: '4px' },
+                    '& strong': { color: 'text.primary', fontWeight: 600 },
+                    '& a': { color: 'primary.main' },
+                  }}
+                >
+                  <ReactMarkdown>{entry.body}</ReactMarkdown>
                 </Box>
               ) : (
                 <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>

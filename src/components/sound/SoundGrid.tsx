@@ -5,6 +5,7 @@ import { useFilteredSounds } from '../../stores/appStore';
 import { MusicOff } from '@mui/icons-material';
 import { Sound } from '../../types';
 import { useLazyBatch } from '../../hooks/useLazyBatch';
+import { useI18n } from '../../i18n/I18nProvider';
 
 interface SoundGridProps {
   onContextMenu: (sound: Sound, position: { top: number; left: number }) => void;
@@ -16,6 +17,7 @@ interface SoundGridProps {
 export default function SoundGrid({ onContextMenu, onEdit, dragActiveId, compact }: SoundGridProps) {
   const sounds = useFilteredSounds();
   const { visible, sentinelRef, hasMore } = useLazyBatch(sounds);
+  const { t } = useI18n();
 
   if (sounds.length === 0) {
     return (
@@ -42,10 +44,10 @@ export default function SoundGrid({ onContextMenu, onEdit, dragActiveId, compact
             <MusicOff sx={{ fontSize: 56, color: 'text.secondary', opacity: 0.3 }} />
           </motion.div>
           <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.secondary', opacity: 0.5 }}>
-            Aucun son
+            {t('noSounds')}
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', opacity: 0.3, fontSize: '0.8rem' }}>
-            Clique sur + pour ajouter ton premier son
+            {t('noSoundsHint')}
           </Typography>
         </Box>
       </motion.div>
