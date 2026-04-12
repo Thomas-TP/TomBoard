@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import NewReleasesIcon from '@mui/icons-material/NewReleases';
 import ReactMarkdown from 'react-markdown';
+import { useI18n } from '../../i18n/I18nProvider';
 
 interface ChangelogEntry {
   version: string;
@@ -30,6 +31,7 @@ export default function ChangelogDialog({ open, onClose, highlightVersion }: Pro
   const [entries, setEntries] = useState<ChangelogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useI18n();
 
   useEffect(() => {
     if (!open) return;
@@ -59,7 +61,7 @@ export default function ChangelogDialog({ open, onClose, highlightVersion }: Pro
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <NewReleasesIcon color="primary" />
-        Notes de version
+        {t('changelog')}
       </DialogTitle>
       <DialogContent dividers sx={{ p: 0 }}>
         {loading && (
@@ -69,7 +71,7 @@ export default function ChangelogDialog({ open, onClose, highlightVersion }: Pro
         )}
         {error && (
           <Box sx={{ px: 3, py: 2 }}>
-            <Typography color="error" variant="body2">Impossible de charger les notes de version : {error}</Typography>
+            <Typography color="error" variant="body2">{t('loadingReleaseNotes')} {error}</Typography>
           </Box>
         )}
         {!loading && !error && entries.map((entry, i) => {
@@ -92,7 +94,7 @@ export default function ChangelogDialog({ open, onClose, highlightVersion }: Pro
                 </Typography>
                 {isHighlighted && (
                   <Chip
-                    label="Actuelle"
+                    label={t('current')}
                     color="primary"
                     size="small"
                     sx={{ height: 20, fontSize: '0.65rem' }}
@@ -114,7 +116,7 @@ export default function ChangelogDialog({ open, onClose, highlightVersion }: Pro
                 </Box>
               ) : (
                 <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                  Aucune note pour cette version.
+                  {t('noNotesForVersion')}
                 </Typography>
               )}
               {i < entries.length - 1 && <Divider sx={{ mt: 2 }} />}
@@ -124,7 +126,7 @@ export default function ChangelogDialog({ open, onClose, highlightVersion }: Pro
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} variant="contained">
-          Fermer
+          {t('close')}
         </Button>
       </DialogActions>
     </Dialog>

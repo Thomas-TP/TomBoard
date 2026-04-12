@@ -18,6 +18,7 @@ import {
 import { Close, Add } from '@mui/icons-material';
 import { useAppStore } from '../../stores/appStore';
 import { ICON_OPTIONS, renderCategoryIcon } from '../../utils/icons';
+import { useI18n } from '../../i18n/I18nProvider';
 
 interface ManageCategoriesDialogProps {
   open: boolean;
@@ -39,6 +40,7 @@ export default function ManageCategoriesDialog({ open, onClose }: ManageCategori
 
   const profile = data?.profiles.find(p => p.id === data.settings.activeProfileId);
   const categories = profile?.categories ?? [];
+  const { t } = useI18n();
 
   const handleAdd = async () => {
     if (!newName.trim()) return;
@@ -58,7 +60,7 @@ export default function ManageCategoriesDialog({ open, onClose }: ManageCategori
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h6" sx={{ fontWeight: 700 }}>
-          Gérer les catégories
+          {t('categories')}
         </Typography>
         <IconButton onClick={onClose} size="small">
           <Close />
@@ -103,12 +105,12 @@ export default function ManageCategoriesDialog({ open, onClose }: ManageCategori
 
           {/* Add new category */}
           <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-            Nouvelle catégorie
+            {t('newCategory')}
           </Typography>
 
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             <TextField
-              placeholder="Nom..."
+              placeholder={t('categoryNamePlaceholder')}
               value={newName}
               onChange={e => setNewName(e.target.value)}
               size="small"
@@ -123,14 +125,14 @@ export default function ManageCategoriesDialog({ open, onClose }: ManageCategori
               startIcon={<Add />}
               sx={{ borderRadius: 2 }}
             >
-              Ajouter
+              {t('add')}
             </Button>
           </Box>
 
           {/* Icon picker */}
           <Box>
             <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
-              Icône: {renderCategoryIcon(newIcon, { sx: { fontSize: 20 } })}
+              {t('iconLabel')} {renderCategoryIcon(newIcon, { sx: { fontSize: 20 } })}
             </Typography>
             <Grid container spacing={0.5}>
               {ICON_OPTIONS.map(opt => (
@@ -162,7 +164,7 @@ export default function ManageCategoriesDialog({ open, onClose }: ManageCategori
           {/* Color picker */}
           <Box>
             <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
-              Couleur
+              {t('colorLabel')}
             </Typography>
             <Grid container spacing={0.5}>
               {COLOR_PALETTE.map(c => (
@@ -189,7 +191,7 @@ export default function ManageCategoriesDialog({ open, onClose }: ManageCategori
 
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} variant="contained" sx={{ borderRadius: 3 }}>
-          Fermer
+          {t('close')}
         </Button>
       </DialogActions>
     </Dialog>

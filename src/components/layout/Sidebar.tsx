@@ -166,7 +166,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
     >
 
       {/* Categories */}
-      <Box sx={{ px: isCollapsed ? 0 : 2.5, pt: 1, pb: isCollapsed ? 0 : 1, height: isCollapsed ? 0 : 'auto', overflow: 'hidden', opacity: isCollapsed ? 0 : 1, transition: 'all 0.15s ease' }}>
+      <Box sx={{ px: isCollapsed ? 0 : 2.5, pt: 1, pb: isCollapsed ? 0 : 1, maxHeight: isCollapsed ? 0 : 40, overflow: 'hidden', opacity: isCollapsed ? 0 : 1, transition: 'all 0.15s ease' }}>
         <Typography
           variant="overline"
           color="text.secondary"
@@ -188,11 +188,11 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
             ? (profile?.sounds.length ?? 0)
             : (profile?.sounds.filter(s => s.category === cat.id).length ?? 0);
           return isCollapsed ? (
-            <Tooltip key={cat.id} title={`${cat.name} (${count})`} placement="right" arrow>
+            <Tooltip key={cat.id} title={`${cat.id === 'all' ? t('allCategories') : cat.name} (${count})`} placement="right" arrow>
               <ListItemButton
                 selected={isActive}
                 aria-current={isActive ? 'true' : undefined}
-                aria-label={cat.name}
+                aria-label={cat.id === 'all' ? t('allCategories') : cat.name}
                 onClick={() => setActiveCategory(cat.id)}
                 sx={{
                   borderRadius: '10px',
@@ -253,7 +253,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
                 {ICON_MAP[cat.icon] ?? <FolderSpecial />}
               </ListItemIcon>
               <ListItemText
-                primary={cat.name}
+                primary={cat.id === 'all' ? t('allCategories') : cat.name}
                 slotProps={{
                   primary: {
                     sx: {
@@ -288,7 +288,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
       <Divider sx={{ mx: isCollapsed ? 0.5 : 2.5, opacity: 0.5 }} />
 
       {/* Profiles */}
-      <Box sx={{ px: isCollapsed ? 0 : 2.5, pt: isCollapsed ? 0 : 1.5, pb: isCollapsed ? 0 : 0.5, height: isCollapsed ? 0 : 'auto', overflow: 'hidden', opacity: isCollapsed ? 0 : 1, transition: 'all 0.15s ease' }}>
+      <Box sx={{ px: isCollapsed ? 0 : 2.5, pt: isCollapsed ? 0 : 1.5, pb: isCollapsed ? 0 : 0.5, maxHeight: isCollapsed ? 0 : 40, overflow: 'hidden', opacity: isCollapsed ? 0 : 1, transition: 'all 0.15s ease' }}>
         <Typography
           variant="overline"
           color="text.secondary"

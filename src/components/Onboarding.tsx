@@ -28,6 +28,7 @@ import {
 } from '@mui/icons-material';
 import { invoke } from '@tauri-apps/api/core';
 import TomBoardLogo from './TomBoardLogo';
+import { useI18n } from '../i18n/I18nProvider';
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -52,6 +53,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const [testingMic, setTestingMic] = useState(false);
   const [testStatus, setTestStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const { t } = useI18n();
 
   // Load devices on mount
   useEffect(() => {
@@ -122,7 +124,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       await invoke('test_secondary_output');
       setTestStatus('success');
     } catch (e) {
-      setTestStatus(`Erreur: ${e}`);
+      setTestStatus(`error:${e}`);
     } finally {
       setTestingOutput(false);
     }
@@ -139,9 +141,9 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     setTestStatus(null);
     try {
       await invoke('start_mic_passthrough', { device: selectedMic === 'default' ? null : selectedMic });
-      setTestStatus('Parlez dans votre micro — vous devez vous entendre…');
+      setTestStatus('mic-listen');
     } catch (e) {
-      setTestStatus(`Erreur: ${e}`);
+      setTestStatus(`error:${e}`);
       setTestingMic(false);
     }
   };
@@ -155,11 +157,11 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const isLast = step >= STEP_COUNT - 1;
 
   const stepConfigs = [
-    { title: 'Bienvenue sur TomBoard !', icon: <RocketLaunch />, color: '#7C5CFC', gradient: 'linear-gradient(135deg, #7C5CFC 0%, #B347EA 100%)' },
-    { title: 'Sortie audio', icon: <VolumeUp />, color: '#00D4AA', gradient: 'linear-gradient(135deg, #00D4AA 0%, #00B4D8 100%)' },
-    { title: 'Microphone', icon: <Mic />, color: '#E040FB', gradient: 'linear-gradient(135deg, #E040FB 0%, #7C5CFC 100%)' },
-    { title: 'Câble virtuel', icon: <Cable />, color: '#FFB800', gradient: 'linear-gradient(135deg, #FFB800 0%, #FF6B00 100%)' },
-    { title: "C'est prêt !", icon: <CheckCircle />, color: '#00D4AA', gradient: 'linear-gradient(135deg, #00D4AA 0%, #4CAF50 100%)' },
+    { title: t('welcomeTitle'), icon: <RocketLaunch />, color: '#7C5CFC', gradient: 'linear-gradient(135deg, #7C5CFC 0%, #B347EA 100%)' },
+    { title: t('audioOutput'), icon: <VolumeUp />, color: '#00D4AA', gradient: 'linear-gradient(135deg, #00D4AA 0%, #00B4D8 100%)' },
+    { title: t('microphone'), icon: <Mic />, color: '#E040FB', gradient: 'linear-gradient(135deg, #E040FB 0%, #7C5CFC 100%)' },
+    { title: t('virtualCable'), icon: <Cable />, color: '#FFB800', gradient: 'linear-gradient(135deg, #FFB800 0%, #FF6B00 100%)' },
+    { title: t('allReady'), icon: <CheckCircle />, color: '#00D4AA', gradient: 'linear-gradient(135deg, #00D4AA 0%, #4CAF50 100%)' },
   ];
 
   const cfg = stepConfigs[step];
@@ -173,13 +175,13 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               <TomBoardLogo size={64} />
             </Box>
             <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.88rem', lineHeight: 1.6 }}>
-              Ce wizard va configurer votre audio en <strong style={{ color: '#fff' }}>3 étapes</strong> :
+              {t('wizardIntro')} <strong style={{ color: '#fff' }}>{t('wizardSteps')}</strong> :
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2, textAlign: 'left' }}>
               {[
-                { icon: <VolumeUp sx={{ fontSize: 16 }} />, text: 'Sélection de la sortie audio (casque, haut-parleurs…)' },
-                { icon: <Mic sx={{ fontSize: 16 }} />, text: 'Sélection du microphone' },
-                { icon: <Cable sx={{ fontSize: 16 }} />, text: 'Configuration du câble virtuel (optionnel, pour Discord)' },
+                { icon: <VolumeUp sx={{ fontSize: 16 }} />, text: t('selectOutputHint') },
+                { icon: <Mic sx={{ fontSize: 16 }} />, text: t('selectMicHint') },
+                { icon: <Cable sx={{ fontSize: 16 }} />, text: t('virtualCableHint') },
               ].map((item, i) => (
                 <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 1, borderRadius: '10px', bgcolor: 'rgba(255,255,255,0.04)' }}>
                   <Box sx={{ color: cfg.color, display: 'flex' }}>{item.icon}</Box>
@@ -194,17 +196,17 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         return (
           <Box sx={{ py: 1 }}>
             <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.82rem', mb: 2, lineHeight: 1.5 }}>
-              Choisissez où TomBoard jouera les sons. Sélectionnez votre casque ou vos haut-parleurs.
+              {t('chooseOutput')}
             </Typography>
             {loading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={24} /></Box>
             ) : (
               <>
                 <FormControl fullWidth size="small" sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: 'rgba(255,255,255,0.05)' }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' }, '& .MuiSelect-select': { color: '#fff' } }}>
-                  <InputLabel>Périphérique de sortie</InputLabel>
-                  <Select value={selectedOutput} onChange={e => setSelectedOutput(e.target.value)} label="Périphérique de sortie">
+                  <InputLabel>{t('outputDevice')}</InputLabel>
+                  <Select value={selectedOutput} onChange={e => setSelectedOutput(e.target.value)} label={t('outputDevice')}>
                     {outputDevices.filter(d => !virtualCables.includes(d)).map(dev => (
-                      <MenuItem key={dev} value={dev}>{dev === 'default' ? '🔊 Par défaut du système' : dev}</MenuItem>
+                      <MenuItem key={dev} value={dev}>{dev === 'default' ? `🔊 ${t('systemDefault')}` : dev}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -216,18 +218,18 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                   fullWidth
                   sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.78rem', borderColor: 'rgba(255,255,255,0.15)', color: '#fff', '&:hover': { borderColor: cfg.color } }}
                 >
-                  {testingOutput ? 'Test en cours…' : 'Tester la sortie (bip 440Hz)'}
+                  {testingOutput ? t('testInProgress') : t('testOutput')}
                 </Button>
               </>
             )}
             {testStatus === 'success' && (
               <Alert severity="success" sx={{ mt: 1.5, borderRadius: '10px', fontSize: '0.75rem' }}>
-                Son joué ! Si vous l'avez entendu, c'est bon.
+                {t('testSuccess')}
               </Alert>
             )}
-            {testStatus && testStatus !== 'success' && !testStatus.startsWith('Parlez') && (
+            {testStatus && testStatus !== 'success' && !testStatus.startsWith('mic-listen') && (
               <Alert severity="error" sx={{ mt: 1.5, borderRadius: '10px', fontSize: '0.75rem' }}>
-                {testStatus}
+                {testStatus.replace('error:', '')}
               </Alert>
             )}
           </Box>
@@ -237,17 +239,17 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         return (
           <Box sx={{ py: 1 }}>
             <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.82rem', mb: 2, lineHeight: 1.5 }}>
-              Sélectionnez votre microphone pour le changeur de voix et l'enregistrement.
+              {t('selectMicDescription')}
             </Typography>
             {loading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={24} /></Box>
             ) : (
               <>
                 <FormControl fullWidth size="small" sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: 'rgba(255,255,255,0.05)' }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' }, '& .MuiSelect-select': { color: '#fff' } }}>
-                  <InputLabel>Microphone</InputLabel>
-                  <Select value={selectedMic} onChange={e => setSelectedMic(e.target.value)} label="Microphone">
+                  <InputLabel>{t('microphone')}</InputLabel>
+                  <Select value={selectedMic} onChange={e => setSelectedMic(e.target.value)} label={t('microphone')}>
                     {inputDevices.map(dev => (
-                      <MenuItem key={dev} value={dev}>{dev === 'default' ? '🎤 Par défaut du système' : dev}</MenuItem>
+                      <MenuItem key={dev} value={dev}>{dev === 'default' ? `🎤 ${t('systemDefault')}` : dev}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -259,18 +261,18 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                   color={testingMic ? 'error' : 'inherit'}
                   sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.78rem', borderColor: testingMic ? undefined : 'rgba(255,255,255,0.15)', color: testingMic ? undefined : '#fff', '&:hover': { borderColor: testingMic ? undefined : cfg.color } }}
                 >
-                  {testingMic ? 'Arrêter le test' : 'Tester le micro (écoute directe)'}
+                  {testingMic ? t('stopTest') : t('testMic')}
                 </Button>
               </>
             )}
-            {testStatus && testStatus.startsWith('Parlez') && (
+            {testStatus === 'mic-listen' && (
               <Alert severity="info" sx={{ mt: 1.5, borderRadius: '10px', fontSize: '0.75rem' }}>
-                {testStatus}
+                {t('speakIntoMic')}
               </Alert>
             )}
-            {testStatus && testStatus.startsWith('Erreur') && (
+            {testStatus && testStatus.startsWith('error:') && (
               <Alert severity="error" sx={{ mt: 1.5, borderRadius: '10px', fontSize: '0.75rem' }}>
-                {testStatus}
+                {testStatus.replace('error:', '')}
               </Alert>
             )}
           </Box>
@@ -280,43 +282,43 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         return (
           <Box sx={{ py: 1 }}>
             <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.82rem', mb: 1.5, lineHeight: 1.5 }}>
-              Pour envoyer les sons et votre voix modifiée dans Discord/Teams, vous avez besoin d'un <strong style={{ color: '#fff' }}>câble audio virtuel</strong>.
+              {t('virtualCableDescription')}
             </Typography>
             {virtualCables.length > 0 ? (
               <>
                 <Alert severity="success" icon={<CheckCircle />} sx={{ mb: 2, borderRadius: '10px', fontSize: '0.75rem' }}>
-                  {virtualCables.length} câble(s) virtuel(s) détecté(s) !
+                  {virtualCables.length} {t('virtualCablesDetected')}
                 </Alert>
                 <FormControl fullWidth size="small" sx={{ mb: 1.5, '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: 'rgba(255,255,255,0.05)' }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' }, '& .MuiSelect-select': { color: '#fff' } }}>
-                  <InputLabel>Câble virtuel</InputLabel>
-                  <Select value={selectedCable} onChange={e => setSelectedCable(e.target.value)} label="Câble virtuel">
-                    <MenuItem value="none">Pas de câble (désactivé)</MenuItem>
+                  <InputLabel>{t('virtualCableLabel')}</InputLabel>
+                  <Select value={selectedCable} onChange={e => setSelectedCable(e.target.value)} label={t('virtualCableLabel')}>
+                    <MenuItem value="none">{t('noCableDisabled')}</MenuItem>
                     {virtualCables.map(dev => (
                       <MenuItem key={dev} value={dev}>{dev}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
                 <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.72rem', lineHeight: 1.5 }}>
-                  💡 Dans Discord → Paramètres → Voix → Entrée : sélectionnez ce câble virtuel comme microphone.
+                  {t('discordVoiceInputHint')}
                 </Typography>
               </>
             ) : (
               <>
                 <Alert severity="warning" sx={{ mb: 2, borderRadius: '10px', fontSize: '0.75rem' }}>
-                  Aucun câble virtuel détecté.
+                  {t('noCableDetected')}
                 </Alert>
                 <Box sx={{ p: 2, borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                   <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.78rem', fontWeight: 600, mb: 1 }}>
-                    Installer VB-Audio Virtual Cable :
+                    {t('installVbCableTitle')}
                   </Typography>
                   <Typography component="div" sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.72rem', lineHeight: 1.6 }}>
-                    1. Téléchargez <Chip label="vb-audio.com/Cable" size="small" variant="outlined" sx={{ fontSize: '0.65rem', height: 20, borderColor: cfg.color, color: cfg.color }} /><br />
-                    2. Installez et redémarrez votre PC<br />
-                    3. Relancez le setup dans les paramètres
+                    {t('vbCableStep1')} <Chip label="vb-audio.com/Cable" size="small" variant="outlined" sx={{ fontSize: '0.65rem', height: 20, borderColor: cfg.color, color: cfg.color }} /><br />
+                    {t('vbCableStep2')}<br />
+                    {t('vbCableStep3')}
                   </Typography>
                 </Box>
                 <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem', mt: 1.5, fontStyle: 'italic' }}>
-                  Vous pouvez sauter cette étape et configurer plus tard dans ⚙️ Paramètres.
+                  {t('skipHint')}
                 </Typography>
               </>
             )}
@@ -330,16 +332,16 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               <CheckCircle sx={{ fontSize: 32, color: '#fff' }} />
             </Box>
             <Typography sx={{ fontWeight: 700, color: '#fff', fontSize: '1.1rem', mb: 1 }}>
-              Configuration terminée !
+              {t('configComplete')}
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mt: 2, textAlign: 'left' }}>
-              <SummaryRow icon={<VolumeUp sx={{ fontSize: 14 }} />} label="Sortie" value={selectedOutput === 'default' ? 'Par défaut' : selectedOutput} color="#00D4AA" />
-              <SummaryRow icon={<Mic sx={{ fontSize: 14 }} />} label="Micro" value={selectedMic === 'default' ? 'Par défaut' : selectedMic} color="#E040FB" />
-              <SummaryRow icon={<Cable sx={{ fontSize: 14 }} />} label="Câble virtuel" value={selectedCable === 'none' ? 'Non configuré' : selectedCable} color="#FFB800" />
+              <SummaryRow icon={<VolumeUp sx={{ fontSize: 14 }} />} label={t('output')} value={selectedOutput === 'default' ? t('defaultPlaceholder') : selectedOutput} color="#00D4AA" />
+              <SummaryRow icon={<Mic sx={{ fontSize: 14 }} />} label={t('mic')} value={selectedMic === 'default' ? t('defaultPlaceholder') : selectedMic} color="#E040FB" />
+              <SummaryRow icon={<Cable sx={{ fontSize: 14 }} />} label={t('virtualCable')} value={selectedCable === 'none' ? t('notConfigured') : selectedCable} color="#FFB800" />
             </Box>
             <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.72rem', mt: 2 }}>
               <Settings sx={{ fontSize: 12, verticalAlign: 'middle', mr: 0.5 }} />
-              Vous pouvez modifier ces paramètres à tout moment dans les Paramètres.
+              {t('modifySettingsHint')}
             </Typography>
           </Box>
         );
@@ -377,7 +379,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                   {cfg.title}
                 </Typography>
                 <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem', fontWeight: 500 }}>
-                  Étape {step + 1} / {STEP_COUNT}
+                  {t('step')} {step + 1} / {STEP_COUNT}
                 </Typography>
               </Box>
             </Box>
@@ -409,7 +411,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                   startIcon={<ArrowBack sx={{ fontSize: 14 }} />}
                   sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.1)', px: 1.5, '&:hover': { bgcolor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.2)' } }}
                 >
-                  Retour
+                  {t('back')}
                 </Button>
               )}
               <Button
@@ -419,7 +421,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                 endIcon={isLast ? <CheckCircle sx={{ fontSize: 16 }} /> : <ArrowForward sx={{ fontSize: 14 }} />}
                 sx={{ flex: 1, borderRadius: '10px', textTransform: 'none', fontWeight: 700, fontSize: '0.82rem', background: cfg.gradient, boxShadow: `0 4px 12px ${cfg.color}30`, '&:hover': { boxShadow: `0 6px 20px ${cfg.color}50` } }}
               >
-                {isLast ? "C'est parti !" : step === 3 && virtualCables.length === 0 ? 'Passer' : 'Suivant'}
+                {isLast ? t('letsGo') : step === 3 && virtualCables.length === 0 ? t('skip') : t('next')}
               </Button>
             </Box>
           </Box>

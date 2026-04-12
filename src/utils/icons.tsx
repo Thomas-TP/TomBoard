@@ -83,18 +83,18 @@ export function renderCategoryIcon(iconId: string, props?: SvgIconProps): React.
 // ── Category options for pickers ──
 
 export const ICON_OPTIONS = [
-  { id: 'apps', label: 'Tous' },
-  { id: 'sports_esports', label: 'Gaming' },
-  { id: 'emoji_emotions', label: 'Fun' },
-  { id: 'music_note', label: 'Musique' },
-  { id: 'mic', label: 'Voix' },
-  { id: 'movie', label: 'Film' },
-  { id: 'announcement', label: 'Annonce' },
-  { id: 'notifications', label: 'Notif' },
-  { id: 'build', label: 'SFX' },
-  { id: 'pets', label: 'Animaux' },
-  { id: 'nature', label: 'Nature' },
-  { id: 'celebration', label: 'Fête' },
+  { id: 'apps', label: 'Tous', i18nKey: 'iconAll' },
+  { id: 'sports_esports', label: 'Gaming', i18nKey: 'iconGaming' },
+  { id: 'emoji_emotions', label: 'Fun', i18nKey: 'iconFun' },
+  { id: 'music_note', label: 'Musique', i18nKey: 'iconMusic' },
+  { id: 'mic', label: 'Voix', i18nKey: 'iconVoice' },
+  { id: 'movie', label: 'Film', i18nKey: 'iconMovie' },
+  { id: 'announcement', label: 'Annonce', i18nKey: 'iconAnnounce' },
+  { id: 'notifications', label: 'Notif', i18nKey: 'iconNotif' },
+  { id: 'build', label: 'SFX', i18nKey: 'iconSfx' },
+  { id: 'pets', label: 'Animaux', i18nKey: 'iconAnimals' },
+  { id: 'nature', label: 'Nature', i18nKey: 'iconNature' },
+  { id: 'celebration', label: 'Fête', i18nKey: 'iconParty' },
 ];
 
 // ── Sound icon system ──

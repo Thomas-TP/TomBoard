@@ -37,6 +37,7 @@ import {
 import { open } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 import { useAppStore } from '../../stores/appStore';
+import { useI18n } from '../../i18n/I18nProvider';
 
 interface TtsVoice {
   name: string;
@@ -97,6 +98,7 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
   const data = useAppStore(s => s.data);
   const profile = data?.profiles.find(p => p.id === data.settings.activeProfileId);
   const categories = profile?.categories ?? [];
+  const { t } = useI18n();
 
   const cleanupRecording = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -194,9 +196,9 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
     const selected = await open({
       multiple: false,
       filters: [
-        { name: 'Audio & Vidéo', extensions: [...AUDIO_EXTENSIONS, ...VIDEO_EXTENSIONS] },
+        { name: t('audioAndVideo'), extensions: [...AUDIO_EXTENSIONS, ...VIDEO_EXTENSIONS] },
         { name: 'Audio', extensions: AUDIO_EXTENSIONS },
-        { name: 'Vidéo', extensions: VIDEO_EXTENSIONS },
+        { name: t('video'), extensions: VIDEO_EXTENSIONS },
       ],
     });
     if (selected) {
@@ -298,7 +300,7 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
       updateLevel();
 
       if (!recName) {
-        setRecName(`Enregistrement ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`);
+        setRecName(`${t('recording')} ${new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`);
       }
     } catch (e) {
       console.error('Failed to start recording:', e);
@@ -434,7 +436,7 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
     try {
       if (ttsEngine === 'piper') {
         if (!data?.settings.piperPath || !data?.settings.piperModel) {
-          setTtsError('Configurez le chemin de Piper et le modèle dans les Paramètres.');
+          setTtsError(t('configurePiperHint'));
           return;
         }
         await invoke('synthesize_piper', {
@@ -500,10 +502,10 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
           </Box>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem', lineHeight: 1.2 }}>
-              Ajouter un son
+              {t('addSound')}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>
-              Fichier, enregistrement ou synthèse vocale
+              {t('fileRecordingOrTts')}
             </Typography>
           </Box>
         </Box>
@@ -515,9 +517,9 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
       {/* Tab pills */}
       <Box sx={{ display: 'flex', gap: 0.5, px: 2.5, pb: 1.5 }}>
         {([
-          { icon: <InsertDriveFile sx={{ fontSize: 14 }} />, label: 'Fichier' },
-          { icon: <Mic sx={{ fontSize: 14 }} />, label: 'Enregistrer' },
-          { icon: <RecordVoiceOver sx={{ fontSize: 14 }} />, label: 'Texte (TTS)' },
+          { icon: <InsertDriveFile sx={{ fontSize: 14 }} />, label: t('file') },
+          { icon: <Mic sx={{ fontSize: 14 }} />, label: t('record') },
+          { icon: <RecordVoiceOver sx={{ fontSize: 14 }} />, label: t('textTts') },
         ]).map((t, idx) => (
           <Chip
             key={idx}
@@ -585,14 +587,14 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
                   {isVideoFile(filePath) && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
                       <Videocam sx={{ fontSize: 13, color: 'warning.main' }} />
-                      <Typography variant="caption" color="warning.main" sx={{ fontSize: '0.65rem' }}>Vidéo — l'audio sera extrait</Typography>
+                      <Typography variant="caption" color="warning.main" sx={{ fontSize: '0.65rem' }}>{t('videoAudioExtract')}</Typography>
                     </Box>
                   )}
                 </>
               ) : (
                 <>
                   <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, fontSize: '0.82rem' }}>
-                    Glisser un fichier ou cliquer pour parcourir
+                    {t('dragDropOrBrowse')}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.62rem', opacity: 0.6 }}>
                     MP3, WAV, OGG, FLAC, AAC, M4A — MP4, MKV, AVI, MOV
@@ -601,13 +603,13 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
               )}
             </Box>
 
-            <TextField label="Nom du son" value={name} onChange={e => setName(e.target.value)} fullWidth size="small"
+            <TextField label={t('soundName')} value={name} onChange={e => setName(e.target.value)} fullWidth size="small"
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
             />
 
             <FormControl size="small" fullWidth>
-              <InputLabel>Catégorie</InputLabel>
-              <Select value={category} onChange={e => setCategory(e.target.value)} label="Catégorie" sx={{ borderRadius: '10px' }}>
+              <InputLabel>{t('category')}</InputLabel>
+              <Select value={category} onChange={e => setCategory(e.target.value)} label={t('category')} sx={{ borderRadius: '10px' }}>
                 {categories.map(cat => <MenuItem key={cat.id} value={cat.id}>{cat.name}</MenuItem>)}
               </Select>
             </FormControl>
@@ -621,7 +623,7 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
               fullWidth
               sx={{ borderRadius: '10px', py: 1, textTransform: 'none', fontWeight: 600 }}
             >
-              {loading ? (isVideoFile(filePath) ? 'Extraction audio...' : 'Ajout...') : 'Ajouter'}
+              {loading ? (isVideoFile(filePath) ? t('extractingAudio') : t('adding')) : t('addSound')}
             </Button>
           </Box>
         )}
@@ -673,7 +675,7 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
               ) : audioBlob ? (
                 <>
                   <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
-                    Enregistrement — {formatDuration(duration)}
+                    {t('recording')} — {formatDuration(duration)}
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <IconButton onClick={playPreview} sx={{
@@ -693,7 +695,7 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
               ) : (
                 <>
                   <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, fontSize: '0.82rem' }}>
-                    Cliquez pour enregistrer
+                    {t('clickToRecord')}
                   </Typography>
                   <IconButton onClick={startRecording} sx={{
                     bgcolor: 'error.main', color: 'white', width: 48, height: 48, borderRadius: '14px',
@@ -705,13 +707,13 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
               )}
             </Box>
 
-            <TextField label="Nom" value={recName} onChange={e => setRecName(e.target.value)} fullWidth size="small"
+            <TextField label={t('name')} value={recName} onChange={e => setRecName(e.target.value)} fullWidth size="small"
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
             />
 
             <FormControl size="small" fullWidth>
-              <InputLabel>Catégorie</InputLabel>
-              <Select value={recCategory} onChange={e => setRecCategory(e.target.value)} label="Catégorie" sx={{ borderRadius: '10px' }}>
+              <InputLabel>{t('category')}</InputLabel>
+              <Select value={recCategory} onChange={e => setRecCategory(e.target.value)} label={t('category')} sx={{ borderRadius: '10px' }}>
                 {categories.map(cat => <MenuItem key={cat.id} value={cat.id}>{cat.name}</MenuItem>)}
               </Select>
             </FormControl>
@@ -723,7 +725,7 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
               fullWidth
               sx={{ borderRadius: '10px', py: 1, textTransform: 'none', fontWeight: 600 }}
             >
-              {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+              {saving ? t('saving') : t('save')}
             </Button>
           </Box>
         )}
@@ -756,12 +758,12 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
             >
               <ToggleButton value="windows">Windows TTS</ToggleButton>
               <ToggleButton value="piper" disabled={!piperAvailable}>
-                Piper (Local){!piperAvailable && ' — non configuré'}
+                Piper (Local){!piperAvailable && ` — ${t('piperNotConfigured')}`}
               </ToggleButton>
             </ToggleButtonGroup>
 
             <TextField
-              label="Texte à prononcer"
+              label={t('textToSpeak')}
               value={ttsText}
               onChange={e => setTtsText(e.target.value)}
               multiline
@@ -769,13 +771,13 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
               maxRows={5}
               fullWidth
               size="small"
-              placeholder="Tapez votre texte ici..."
+              placeholder={t('typeTextHere')}
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
             />
 
             {ttsDetectedLang && ttsEngine === 'windows' && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>Langue détectée :</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>{t('detectedLang')}</Typography>
                 <Chip label={LANG_LABELS[ttsDetectedLang] || ttsDetectedLang.toUpperCase()} size="small" color="info" sx={{ height: 22, fontSize: '0.65rem', borderRadius: '6px' }} />
               </Box>
             )}
@@ -786,7 +788,7 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
               <FormControl size="small" sx={{ minWidth: 150 }}>
                 <InputLabel>Langue</InputLabel>
                 <Select value={ttsLangFilter} onChange={e => setTtsLangFilter(e.target.value)} label="Langue" sx={{ borderRadius: '10px', fontSize: '0.82rem' }}>
-                  <MenuItem value=""><em>Toutes ({ttsVoices.length})</em></MenuItem>
+                  <MenuItem value=""><em>{t('allLangs')} ({ttsVoices.length})</em></MenuItem>
                   {availableLangs.map(l => (
                     <MenuItem key={l.code} value={l.code}>{l.label}</MenuItem>
                   ))}
@@ -848,7 +850,7 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
 
             {ttsEngine === 'windows' && ttsVoices.length === 0 && (
               <Alert severity="warning" sx={{ fontSize: '0.75rem', py: 0.5, borderRadius: '10px' }}>
-                Aucune voix installée. Installez des voix dans Paramètres Windows → Heure et langue → Voix.
+                {t('noVoicesInstalledWindows')}
               </Alert>
             )}
 
@@ -860,7 +862,7 @@ export default function AddSoundDialog({ open: isOpen, onClose }: AddSoundDialog
               startIcon={ttsLoading ? <CircularProgress size={16} /> : <GraphicEq sx={{ fontSize: 18 }} />}
               sx={{ borderRadius: '10px', py: 1, textTransform: 'none', fontWeight: 600 }}
             >
-              {ttsLoading ? 'Génération...' : 'Générer le son'}
+              {ttsLoading ? t('generating') : t('generateSound')}
             </Button>
           </Box>
         )}

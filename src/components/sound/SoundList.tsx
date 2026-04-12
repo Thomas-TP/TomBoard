@@ -20,6 +20,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useAppStore, useFilteredSounds } from '../../stores/appStore';
 import { Sound } from '../../types';
 import { useLazyBatch } from '../../hooks/useLazyBatch';
+import { useI18n } from '../../i18n/I18nProvider';
 
 interface SoundListProps {
   onContextMenu: (sound: Sound, position: { top: number; left: number }) => void;
@@ -35,6 +36,7 @@ export default function SoundList({ onContextMenu, onEdit }: SoundListProps) {
   const updateSound = useAppStore(s => s.updateSound);
   const setVolume = useAppStore(s => s.setVolume);
   const playingIds = useAppStore(s => s.playingIds);
+  const { t } = useI18n();
 
   if (sounds.length === 0) {
     return (
@@ -51,10 +53,10 @@ export default function SoundList({ onContextMenu, onEdit }: SoundListProps) {
       >
         <MusicOff sx={{ fontSize: 56, color: 'text.secondary', opacity: 0.3 }} />
         <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.secondary', opacity: 0.5 }}>
-          Aucun son
+          {t('noSounds')}
         </Typography>
         <Typography variant="body2" sx={{ color: 'text.secondary', opacity: 0.3, fontSize: '0.8rem' }}>
-          Clique sur + pour ajouter ton premier son
+          {t('noSoundsHint')}
         </Typography>
       </Box>
     );
@@ -76,7 +78,7 @@ export default function SoundList({ onContextMenu, onEdit }: SoundListProps) {
           >
           <ListItemButton
             key={sound.id}
-            aria-label={`${isPlaying ? 'Arrêter' : 'Jouer'} ${sound.name}`}
+            aria-label={`${isPlaying ? t('stop') : t('play')} ${sound.name}`}
             onClick={() => playSound(sound)}
             onDoubleClick={() => onEdit(sound)}
             onContextMenu={(e) => {
@@ -180,7 +182,7 @@ export default function SoundList({ onContextMenu, onEdit }: SoundListProps) {
             />
             <IconButton
               size="small"
-              aria-label={sound.isFavorite ? `Retirer ${sound.name} des favoris` : `Ajouter ${sound.name} aux favoris`}
+              aria-label={sound.isFavorite ? `${t('removeFromFavorites')} ${sound.name}` : `${t('addToFavorites')} ${sound.name}`}
               onClick={e => {
                 e.stopPropagation();
                 toggleFavorite(sound.id);
@@ -195,7 +197,7 @@ export default function SoundList({ onContextMenu, onEdit }: SoundListProps) {
             </IconButton>
             <IconButton
               size="small"
-              aria-label={`Supprimer ${sound.name}`}
+              aria-label={`${t('delete')} ${sound.name}`}
               onClick={e => {
                 e.stopPropagation();
                 deleteSound(sound.id);

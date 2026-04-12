@@ -3,6 +3,7 @@ import { Box, Typography, Button, CircularProgress } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { ContentCut } from '@mui/icons-material';
 import { invoke } from '@tauri-apps/api/core';
+import { useI18n } from '../../i18n/I18nProvider';
 
 interface WaveformTrimEditorProps {
   filePath: string;
@@ -19,6 +20,7 @@ export default function WaveformTrimEditor({
   onChange,
 }: WaveformTrimEditorProps) {
   const theme = useTheme();
+  const { t } = useI18n();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [waveform, setWaveform] = useState<number[]>([]);
@@ -170,7 +172,7 @@ export default function WaveformTrimEditor({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <ContentCut sx={{ fontSize: 15, color: 'text.secondary' }} />
           <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.78rem' }}>
-            Éditeur de trim
+            {t('trimEditor')}
           </Typography>
         </Box>
         <Button
@@ -179,7 +181,7 @@ export default function WaveformTrimEditor({
           onClick={() => onChange(0, null)}
           sx={{ fontSize: '0.65rem', textTransform: 'none', py: 0, minHeight: 0 }}
         >
-          Réinitialiser
+          {t('reset')}
         </Button>
       </Box>
 
@@ -215,13 +217,13 @@ export default function WaveformTrimEditor({
       {totalDuration > 0 && (
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
           <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary', fontFamily: 'monospace' }}>
-            Début : {formatTime(trimStart)}
+            {t('trimStart')} : {formatTime(trimStart)}
           </Typography>
           <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'primary.main', fontFamily: 'monospace', fontWeight: 700 }}>
-            Durée : {formatTime((trimEnd ?? totalDuration) - trimStart)}
+            {t('trimDuration')} : {formatTime((trimEnd ?? totalDuration) - trimStart)}
           </Typography>
           <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary', fontFamily: 'monospace' }}>
-            Fin : {formatTime(trimEnd ?? totalDuration)}
+            {t('trimEnd')} : {formatTime(trimEnd ?? totalDuration)}
           </Typography>
         </Box>
       )}

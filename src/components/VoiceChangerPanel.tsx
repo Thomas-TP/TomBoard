@@ -22,6 +22,7 @@ import {
 } from '@mui/icons-material';
 import { invoke } from '@tauri-apps/api/core';
 import MicVisualizer from './sound/MicVisualizer';
+import { useI18n } from '../i18n/I18nProvider';
 
 interface VoicePresetInfo {
   id: string;
@@ -78,10 +79,10 @@ const defaultParams: VoiceFxParams = {
 
 const CATEGORY_LABELS: Record<string, string> = {
   base: '🎤 Base',
-  pitch: '🎵 Hauteur',
-  character: '🎭 Personnages',
-  effect: '🔊 Effets',
-  custom: '🎛️ Personnalisé',
+  pitch: '🎵 Pitch',
+  character: '🎭 Characters',
+  effect: '🔊 Effects',
+  custom: '🎛️ Custom',
 };
 
 interface VoiceChangerPanelProps {
@@ -96,6 +97,7 @@ export default function VoiceChangerPanel({ open, onClose }: VoiceChangerPanelPr
   const [error, setError] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [micActive, setMicActive] = useState(false);
+  const { t } = useI18n();
 
 
 
@@ -192,7 +194,7 @@ export default function VoiceChangerPanel({ open, onClose }: VoiceChangerPanelPr
               )}
             </Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '0.95rem', letterSpacing: '-0.01em' }}>
-              Changeur de Voix
+              {t('voiceChangerTitle')}
             </Typography>
           </Box>
           <IconButton
@@ -226,9 +228,10 @@ export default function VoiceChangerPanel({ open, onClose }: VoiceChangerPanelPr
           )}
 
           {/* Preset grid by category */}
-          {Object.entries(CATEGORY_LABELS).map(([cat, label]) => {
+          {Object.entries(CATEGORY_LABELS).map(([cat, _defaultLabel]) => {
             const items = grouped[cat];
             if (!items || items.length === 0) return null;
+            const label = t(('cat' + cat.charAt(0).toUpperCase() + cat.slice(1)) as any);
             return (
               <Box key={cat} sx={{ mb: 2 }}>
                 <Typography
@@ -329,7 +332,7 @@ export default function VoiceChangerPanel({ open, onClose }: VoiceChangerPanelPr
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Tune sx={{ fontSize: 15, color: 'text.secondary' }} />
               <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.78rem' }}>
-                Réglages avancés
+                {t('advancedSettings')}
               </Typography>
             </Box>
             {showAdvanced ? <ExpandLess sx={{ fontSize: 16, color: 'text.secondary' }} /> : <ExpandMore sx={{ fontSize: 16, color: 'text.secondary' }} />}
@@ -337,31 +340,31 @@ export default function VoiceChangerPanel({ open, onClose }: VoiceChangerPanelPr
 
           <Collapse in={showAdvanced}>
             <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              <ParamSlider label="Hauteur (demi-tons)" value={params.pitch_shift} min={-24} max={24} step={0.5}
+              <ParamSlider label={t('pitchLabel')} value={params.pitch_shift} min={-24} max={24} step={0.5}
                 onChange={v => updateParam('pitch_shift', v)} format={v => `${v > 0 ? '+' : ''}${v}`} />
-              <ParamSlider label="Réverbération" value={params.reverb_mix} min={0} max={1} step={0.01}
+              <ParamSlider label={t('reverbLabel')} value={params.reverb_mix} min={0} max={1} step={0.01}
                 onChange={v => updateParam('reverb_mix', v)} format={v => `${Math.round(v * 100)}%`} />
-              <ParamSlider label="Durée réverb" value={params.reverb_decay} min={0} max={0.99} step={0.01}
+              <ParamSlider label={t('reverbDecayLabel')} value={params.reverb_decay} min={0} max={0.99} step={0.01}
                 onChange={v => updateParam('reverb_decay', v)} format={v => `${Math.round(v * 100)}%`} />
-              <ParamSlider label="Ring Mod (Hz)" value={params.ring_mod_freq} min={0} max={1000} step={1}
+              <ParamSlider label={t('ringModFreqLabel')} value={params.ring_mod_freq} min={0} max={1000} step={1}
                 onChange={v => updateParam('ring_mod_freq', v)} format={v => v === 0 ? 'Off' : `${v} Hz`} />
-              <ParamSlider label="Ring Mod Mix" value={params.ring_mod_mix} min={0} max={1} step={0.01}
+              <ParamSlider label={t('ringModMixLabel')} value={params.ring_mod_mix} min={0} max={1} step={0.01}
                 onChange={v => updateParam('ring_mod_mix', v)} format={v => `${Math.round(v * 100)}%`} />
-              <ParamSlider label="Distortion" value={params.distortion} min={0} max={1} step={0.01}
+              <ParamSlider label={t('distortionLabel')} value={params.distortion} min={0} max={1} step={0.01}
                 onChange={v => updateParam('distortion', v)} format={v => `${Math.round(v * 100)}%`} />
-              <ParamSlider label="Filtre passe-bas" value={params.lowpass_cutoff} min={200} max={20000} step={100}
+              <ParamSlider label={t('lowpassLabel')} value={params.lowpass_cutoff} min={200} max={20000} step={100}
                 onChange={v => updateParam('lowpass_cutoff', v)} format={v => v >= 19900 ? 'Off' : `${v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v} Hz`} />
-              <ParamSlider label="Filtre passe-haut" value={params.highpass_cutoff} min={20} max={2000} step={10}
+              <ParamSlider label={t('highpassLabel')} value={params.highpass_cutoff} min={20} max={2000} step={10}
                 onChange={v => updateParam('highpass_cutoff', v)} format={v => v <= 25 ? 'Off' : `${v} Hz`} />
-              <ParamSlider label="Vibrato vitesse" value={params.vibrato_rate} min={0} max={20} step={0.1}
+              <ParamSlider label={t('vibratoRateLabel')} value={params.vibrato_rate} min={0} max={20} step={0.1}
                 onChange={v => updateParam('vibrato_rate', v)} format={v => v === 0 ? 'Off' : `${v.toFixed(1)} Hz`} />
-              <ParamSlider label="Vibrato profondeur" value={params.vibrato_depth} min={0} max={2} step={0.05}
+              <ParamSlider label={t('vibratoDepthLabel')} value={params.vibrato_depth} min={0} max={2} step={0.05}
                 onChange={v => updateParam('vibrato_depth', v)} format={v => `${Math.round(v * 100)}%`} />
-              <ParamSlider label="Chorus" value={params.chorus_mix} min={0} max={1} step={0.01}
+              <ParamSlider label={t('chorusLabel')} value={params.chorus_mix} min={0} max={1} step={0.01}
                 onChange={v => updateParam('chorus_mix', v)} format={v => `${Math.round(v * 100)}%`} />
-              <ParamSlider label="Noise Gate" value={params.gate_threshold} min={0} max={0.1} step={0.001}
+              <ParamSlider label={t('gateLabel')} value={params.gate_threshold} min={0} max={0.1} step={0.001}
                 onChange={v => updateParam('gate_threshold', v)} format={v => v === 0 ? 'Off' : `${(v * 1000).toFixed(0)}`} />
-              <ParamSlider label="Volume sortie" value={params.gain} min={0.1} max={3} step={0.05}
+              <ParamSlider label={t('outputGainLabel')} value={params.gain} min={0.1} max={3} step={0.05}
                 onChange={v => updateParam('gain', v)} format={v => `${Math.round(v * 100)}%`} />
 
               <Divider sx={{ my: 1, opacity: 0.4 }} />
@@ -378,18 +381,18 @@ export default function VoiceChangerPanel({ open, onClose }: VoiceChangerPanelPr
                   display: 'block',
                 }}
               >
-                🏚️ Égaliseur paramétrique
+                {t('eqTitle')}
               </Typography>
 
-              <ParamSlider label="80 Hz (Sub)" value={params.eq_low} min={-12} max={12} step={0.5}
+              <ParamSlider label={t('eqSub')} value={params.eq_low} min={-12} max={12} step={0.5}
                 onChange={v => updateParam('eq_low', v)} format={v => `${v > 0 ? '+' : ''}${v} dB`} />
-              <ParamSlider label="250 Hz (Low-Mid)" value={params.eq_low_mid} min={-12} max={12} step={0.5}
+              <ParamSlider label={t('eqLowMid')} value={params.eq_low_mid} min={-12} max={12} step={0.5}
                 onChange={v => updateParam('eq_low_mid', v)} format={v => `${v > 0 ? '+' : ''}${v} dB`} />
-              <ParamSlider label="1 kHz (Mid)" value={params.eq_mid} min={-12} max={12} step={0.5}
+              <ParamSlider label={t('eqMid')} value={params.eq_mid} min={-12} max={12} step={0.5}
                 onChange={v => updateParam('eq_mid', v)} format={v => `${v > 0 ? '+' : ''}${v} dB`} />
-              <ParamSlider label="3.5 kHz (Hi-Mid)" value={params.eq_high_mid} min={-12} max={12} step={0.5}
+              <ParamSlider label={t('eqHighMid')} value={params.eq_high_mid} min={-12} max={12} step={0.5}
                 onChange={v => updateParam('eq_high_mid', v)} format={v => `${v > 0 ? '+' : ''}${v} dB`} />
-              <ParamSlider label="12 kHz (Highs)" value={params.eq_high} min={-12} max={12} step={0.5}
+              <ParamSlider label={t('eqHigh')} value={params.eq_high} min={-12} max={12} step={0.5}
                 onChange={v => updateParam('eq_high', v)} format={v => `${v > 0 ? '+' : ''}${v} dB`} />
             </Box>
           </Collapse>
@@ -409,7 +412,7 @@ export default function VoiceChangerPanel({ open, onClose }: VoiceChangerPanelPr
         >
           <Chip
             icon={micActive ? <MicIcon sx={{ fontSize: 13 }} /> : <MicOff sx={{ fontSize: 13 }} />}
-            label={micActive ? 'Micro actif' : 'Micro inactif'}
+            label={micActive ? t('micActive') : t('micInactive')}
             size="small"
             color={micActive ? 'success' : 'default'}
             variant="outlined"
@@ -417,7 +420,7 @@ export default function VoiceChangerPanel({ open, onClose }: VoiceChangerPanelPr
           />
           {activePreset !== 'none' && (
             <Chip
-              label="Désactiver"
+              label={t('disable')}
               size="small"
               variant="outlined"
               color="error"

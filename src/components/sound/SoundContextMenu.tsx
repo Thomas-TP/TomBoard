@@ -17,6 +17,7 @@ import {
 } from '@mui/icons-material';
 import { Sound } from '../../types';
 import { useAppStore } from '../../stores/appStore';
+import { useI18n } from '../../i18n/I18nProvider';
 
 interface SoundContextMenuProps {
   anchorPosition: { top: number; left: number } | null;
@@ -35,6 +36,7 @@ export default function SoundContextMenu({
   const updateSound = useAppStore(s => s.updateSound);
   const deleteSound = useAppStore(s => s.deleteSound);
   const addSound = useAppStore(s => s.addSound);
+  const { t } = useI18n();
 
   if (!sound) return null;
 
@@ -88,12 +90,12 @@ export default function SoundContextMenu({
     >
       <MenuItem onClick={handleEdit} sx={{ borderRadius: '8px', mx: 0.5, fontSize: '0.82rem' }}>
         <ListItemIcon><Edit sx={{ fontSize: 17 }} /></ListItemIcon>
-        <ListItemText>Modifier</ListItemText>
+        <ListItemText>{t('edit')}</ListItemText>
       </MenuItem>
 
       <MenuItem onClick={handleDuplicate} sx={{ borderRadius: '8px', mx: 0.5, fontSize: '0.82rem' }}>
         <ListItemIcon><ContentCopy sx={{ fontSize: 17 }} /></ListItemIcon>
-        <ListItemText>Dupliquer</ListItemText>
+        <ListItemText>{t('duplicate')}</ListItemText>
       </MenuItem>
 
       <Divider sx={{ my: 0.5, opacity: 0.5 }} />
@@ -105,7 +107,7 @@ export default function SoundContextMenu({
             : <StarBorder sx={{ fontSize: 17 }} />
           }
         </ListItemIcon>
-        <ListItemText>{sound.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}</ListItemText>
+        <ListItemText>{sound.isFavorite ? t('removeFromFavorites') : t('addToFavorites')}</ListItemText>
       </MenuItem>
 
       <MenuItem onClick={handleToggleLoop} sx={{ borderRadius: '8px', mx: 0.5, fontSize: '0.82rem' }}>
@@ -115,7 +117,7 @@ export default function SoundContextMenu({
             : <Repeat sx={{ fontSize: 17 }} />
           }
         </ListItemIcon>
-        <ListItemText>{sound.isLooping ? 'Désactiver la boucle' : 'Activer la boucle'}</ListItemText>
+        <ListItemText>{sound.isLooping ? t('disableLoop') : t('enableLoop')}</ListItemText>
       </MenuItem>
 
       {sound.hotkey && (
@@ -138,7 +140,7 @@ export default function SoundContextMenu({
         }}
       >
         <ListItemIcon><Delete sx={{ fontSize: 17, color: 'inherit' }} /></ListItemIcon>
-        <ListItemText>Supprimer</ListItemText>
+        <ListItemText>{t('delete')}</ListItemText>
       </MenuItem>
     </Menu>
   );

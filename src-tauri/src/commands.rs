@@ -1603,7 +1603,7 @@ pub fn set_noise_suppression(enabled: bool, state: State<MicPassthroughState>) -
 
 // ── Update Commands ──
 
-const GITHUB_RELEASES_URL: &str = "https://github.com/Thomas-TP/TomBoard/releases/latest/download";
+const GITHUB_RELEASES_URL: &str = "https://github.com/Thomas-TP/TomBoard/releases/download/velopack";
 
 #[tauri::command]
 pub fn get_current_version() -> String {

@@ -29,6 +29,7 @@ import {
   Person,
 } from '@mui/icons-material';
 import { useAppStore } from '../../stores/appStore';
+import { useI18n } from '../../i18n/I18nProvider';
 
 interface ManageProfilesDialogProps {
   open: boolean;
@@ -50,6 +51,7 @@ export default function ManageProfilesDialog({ open, onClose }: ManageProfilesDi
 
   const profiles = data?.profiles ?? [];
   const activeId = data?.settings.activeProfileId;
+  const { t } = useI18n();
 
   const handleAdd = async () => {
     const name = newName.trim();
@@ -75,7 +77,7 @@ export default function ManageProfilesDialog({ open, onClose }: ManageProfilesDi
     setMenuAnchor(null);
     const source = profiles.find(p => p.id === id);
     if (source) {
-      await duplicateProfile(id, `${source.name} (copie)`);
+      await duplicateProfile(id, `${source.name} (${t('duplicate').toLowerCase()})`);
     }
   };
 
@@ -96,7 +98,7 @@ export default function ManageProfilesDialog({ open, onClose }: ManageProfilesDi
       fullWidth
       slotProps={{ paper: { sx: { borderRadius: 3, bgcolor: 'background.paper' } } }}
     >
-      <DialogTitle sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}><Person sx={{ fontSize: 22 }} /> Profils</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}><Person sx={{ fontSize: 22 }} /> {t('profiles')}</DialogTitle>
       <DialogContent dividers sx={{ p: 0 }}>
         <List dense>
           {profiles.map(profile => (
@@ -134,7 +136,7 @@ export default function ManageProfilesDialog({ open, onClose }: ManageProfilesDi
               ) : (
                 <ListItemText
                   primary={profile.name}
-                  secondary={`${profile.sounds.length} son${profile.sounds.length > 1 ? 's' : ''} · ${profile.categories.length} catégorie${profile.categories.length > 1 ? 's' : ''}`}
+                  secondary={`${profile.sounds.length} ${t('sounds')} · ${profile.categories.length} ${t('categories').toLowerCase()}`}
                   slotProps={{
                     primary: { sx: { fontWeight: profile.id === activeId ? 700 : 500 } },
                     secondary: { sx: { fontSize: '0.7rem' } },
@@ -168,11 +170,11 @@ export default function ManageProfilesDialog({ open, onClose }: ManageProfilesDi
             value={newName}
             onChange={e => setNewName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleAdd()}
-            placeholder="Nouveau profil..."
+            placeholder={t('newProfilePlaceholder')}
             size="small"
             fullWidth
           />
-          <Tooltip title="Ajouter">
+          <Tooltip title={t('add')}>
             <span>
               <IconButton
                 onClick={handleAdd}
@@ -188,7 +190,7 @@ export default function ManageProfilesDialog({ open, onClose }: ManageProfilesDi
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} variant="contained">Fermer</Button>
+        <Button onClick={onClose} variant="contained">{t('close')}</Button>
       </DialogActions>
 
       {/* Context menu */}
@@ -198,17 +200,17 @@ export default function ManageProfilesDialog({ open, onClose }: ManageProfilesDi
         onClose={() => setMenuAnchor(null)}
       >
         <MenuItem onClick={() => menuAnchor && startEditing(menuAnchor.profileId)}>
-          <Edit sx={{ fontSize: 18, mr: 1 }} /> Renommer
+          <Edit sx={{ fontSize: 18, mr: 1 }} /> {t('rename')}
         </MenuItem>
         <MenuItem onClick={() => menuAnchor && handleDuplicate(menuAnchor.profileId)}>
-          <ContentCopy sx={{ fontSize: 18, mr: 1 }} /> Dupliquer
+          <ContentCopy sx={{ fontSize: 18, mr: 1 }} /> {t('duplicate')}
         </MenuItem>
         {profiles.length > 1 && (
           <MenuItem
             onClick={() => menuAnchor && handleDelete(menuAnchor.profileId)}
             sx={{ color: 'error.main' }}
           >
-            <Delete sx={{ fontSize: 18, mr: 1 }} /> Supprimer
+            <Delete sx={{ fontSize: 18, mr: 1 }} /> {t('delete')}
           </MenuItem>
         )}
       </Menu>

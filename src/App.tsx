@@ -457,7 +457,7 @@ function App() {
           <AnimatePresence mode="wait">
           {viewMode === 'grid' || viewMode === 'compact' ? (
             <motion.div key="grid" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-            <ErrorBoundary fallbackTitle="Erreur d'affichage des sons">
+            <ErrorBoundary fallbackTitle={t('soundsDisplayError')}>
             <SoundGrid
               onContextMenu={(sound, position) => setContextMenu({ sound, position })}
               onEdit={setEditSound}
@@ -468,7 +468,7 @@ function App() {
             </motion.div>
           ) : (
             <motion.div key="list" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-            <ErrorBoundary fallbackTitle="Erreur d'affichage des sons">
+            <ErrorBoundary fallbackTitle={t('soundsDisplayError')}>
             <SoundList
               onContextMenu={(sound, position) => setContextMenu({ sound, position })}
               onEdit={setEditSound}
@@ -517,7 +517,7 @@ function App() {
         onEdit={setEditSound}
       />
 
-      <ErrorBoundary fallbackTitle="Erreur du changeur de voix">
+      <ErrorBoundary fallbackTitle={t('voiceChangerError')}>
       <VoiceChangerPanel
         open={voiceChangerOpen}
         onClose={() => setVoiceChangerOpen(false)}
@@ -559,7 +559,7 @@ function App() {
                 onClick={() => { setChangelogOpen(true); }}
                 sx={{ mr: 1 }}
               >
-                Voir les notes
+                {t('viewNotes')}
               </Button>
               <Button
                 color="inherit"
@@ -567,12 +567,12 @@ function App() {
                 disabled={updating}
                 onClick={applyUpdate}
               >
-                {updating ? 'Installation…' : 'Installer'}
+                {updating ? t('installing') : t('install')}
               </Button>
             </>
           }
         >
-          Mise à jour v{updateAvailable?.version} disponible
+          {t('updateAvailable')} v{updateAvailable?.version}
         </Alert>
       </Snackbar>
     </ThemeProvider>

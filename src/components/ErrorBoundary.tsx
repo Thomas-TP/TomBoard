@@ -1,6 +1,7 @@
 import { Component, ReactNode } from 'react';
 import { Box, Typography, Button } from '@mui/material';
 import { ErrorOutlined, Refresh } from '@mui/icons-material';
+import { I18nContext } from '../i18n/I18nProvider';
 
 interface Props {
   children: ReactNode;
@@ -13,6 +14,9 @@ interface State {
 }
 
 export default class ErrorBoundary extends Component<Props, State> {
+  static contextType = I18nContext;
+  declare context: React.ContextType<typeof I18nContext>;
+
   state: State = { hasError: false, error: null };
 
   static getDerivedStateFromError(error: Error): State {
@@ -28,6 +32,8 @@ export default class ErrorBoundary extends Component<Props, State> {
   };
 
   render() {
+    const t = this.context?.t;
+
     if (this.state.hasError) {
       return (
         <Box
@@ -44,7 +50,7 @@ export default class ErrorBoundary extends Component<Props, State> {
         >
           <ErrorOutlined sx={{ fontSize: 48, color: 'error.main', opacity: 0.7 }} />
           <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1rem' }}>
-            {this.props.fallbackTitle ?? 'Une erreur est survenue'}
+            {this.props.fallbackTitle ?? t?.('errorTitle') ?? 'An error occurred'}
           </Typography>
           <Typography
             variant="body2"
@@ -64,7 +70,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             onClick={this.handleReset}
             sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
           >
-            Réessayer
+            {t?.('retry') ?? 'Retry'}
           </Button>
         </Box>
       );

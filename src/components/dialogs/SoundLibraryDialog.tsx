@@ -42,6 +42,7 @@ import {
 } from '@mui/icons-material';
 import { invoke } from '@tauri-apps/api/core';
 import { useAppStore } from '../../stores/appStore';
+import { useI18n } from '../../i18n/I18nProvider';
 
 interface LibrarySound {
   id: string;
@@ -64,19 +65,19 @@ interface SoundLibraryDialogProps {
 }
 
 const CATEGORIES = [
-  { label: 'Drôle', query: 'funny', icon: SentimentVerySatisfied },
-  { label: 'Musique', query: 'music', icon: MusicNote },
-  { label: 'Anime', query: 'anime', icon: Movie },
-  { label: 'Gaming', query: 'gaming', icon: SportsEsports },
-  { label: 'Meme', query: 'meme', icon: RecordVoiceOver },
-  { label: 'MLG', query: 'mlg', icon: GraphicEq },
-  { label: 'TikTok', query: 'tiktok', icon: Smartphone },
-  { label: 'Film', query: 'movie', icon: Movie },
-  { label: 'Sport', query: 'sport goal', icon: SportsSoccer },
-  { label: 'Animaux', query: 'animal cat dog', icon: Pets },
-  { label: 'Notification', query: 'notification', icon: Notifications },
-  { label: 'Applaudissement', query: 'applause', icon: WavingHand },
-  { label: 'Explosion', query: 'explosion', icon: Bolt },
+  { label: 'catFunny', query: 'funny', icon: SentimentVerySatisfied },
+  { label: 'catMusic', query: 'music', icon: MusicNote },
+  { label: 'catAnime', query: 'anime', icon: Movie },
+  { label: 'catGaming', query: 'gaming', icon: SportsEsports },
+  { label: 'catMeme', query: 'meme', icon: RecordVoiceOver },
+  { label: 'catMlg', query: 'mlg', icon: GraphicEq },
+  { label: 'catTiktok', query: 'tiktok', icon: Smartphone },
+  { label: 'catMovie', query: 'movie', icon: Movie },
+  { label: 'catSport', query: 'sport goal', icon: SportsSoccer },
+  { label: 'catAnimals', query: 'animal cat dog', icon: Pets },
+  { label: 'catNotification', query: 'notification', icon: Notifications },
+  { label: 'catApplause', query: 'applause', icon: WavingHand },
+  { label: 'catExplosion', query: 'explosion', icon: Bolt },
 ];
 
 type LibrarySource = 'myinstants' | 'freesound';
@@ -95,6 +96,7 @@ export default function SoundLibraryDialog({ open, onClose }: SoundLibraryDialog
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const loadData = useAppStore(s => s.loadData);
   const data = useAppStore(s => s.data);
+  const { t } = useI18n();
 
   const soundKey = (s: LibrarySound) => `${s.source}-${s.id}`;
 
@@ -140,7 +142,7 @@ export default function SoundLibraryDialog({ open, onClose }: SoundLibraryDialog
         });
       }
       setResults(res);
-      if (res.length === 0 && !isDefault) setError('Aucun résultat trouvé.');
+      if (res.length === 0 && !isDefault) setError(t('noResults'));
     } catch (e) {
       setError(`${e}`);
     } finally {
@@ -215,7 +217,7 @@ export default function SoundLibraryDialog({ open, onClose }: SoundLibraryDialog
         });
       }, 3000);
     } catch (e) {
-      setError(`Échec du téléchargement : ${e}`);
+      setError(`${t('downloadFailed')} ${e}`);
     } finally {
       setAddingKey(null);
     }
@@ -276,10 +278,10 @@ export default function SoundLibraryDialog({ open, onClose }: SoundLibraryDialog
           </Box>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem', lineHeight: 1.2 }}>
-              Bibliothèque
+              {t('library')}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>
-              {source === 'freesound' ? 'Freesound — Sons Creative Commons' : 'Myinstants — Sons et memes populaires'}
+              {source === 'freesound' ? t('freesoundSource') : t('myinstantsSource')}
             </Typography>
           </Box>
         </Box>
@@ -329,7 +331,7 @@ export default function SoundLibraryDialog({ open, onClose }: SoundLibraryDialog
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, px: 2.5, pt: 0, pb: 2, overflow: 'hidden', flex: 1 }}>
         {/* Search bar */}
         <TextField
-          placeholder="Rechercher des sons..."
+          placeholder={t('searchSounds')}
           value={query}
           onChange={e => setQuery(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') search(); }}
@@ -357,7 +359,7 @@ export default function SoundLibraryDialog({ open, onClose }: SoundLibraryDialog
                     variant="contained"
                     sx={{ borderRadius: '8px', minWidth: 'auto', px: 2, textTransform: 'none', fontSize: '0.75rem' }}
                   >
-                    {loading ? <CircularProgress size={14} /> : 'Rechercher'}
+                    {loading ? <CircularProgress size={14} /> : t('search')}
                   </Button>
                 </InputAdornment>
               ) : undefined,
@@ -384,7 +386,7 @@ export default function SoundLibraryDialog({ open, onClose }: SoundLibraryDialog
               <Chip
                 key={cat.label}
                 icon={<CatIcon sx={{ fontSize: 14 }} />}
-                label={cat.label}
+                label={t(cat.label as any)}
                 size="small"
                 variant={isActive ? 'filled' : 'outlined'}
                 color={isActive ? 'primary' : 'default'}
@@ -555,7 +557,7 @@ export default function SoundLibraryDialog({ open, onClose }: SoundLibraryDialog
                   {isAdded ? (
                     <Chip
                       icon={<CheckCircle sx={{ fontSize: 13 }} />}
-                      label="Ajouté"
+                      label={t('added')}
                       size="small"
                       color="success"
                       sx={{ fontSize: '0.68rem', height: 28, borderRadius: '8px', fontWeight: 600 }}
@@ -577,7 +579,7 @@ export default function SoundLibraryDialog({ open, onClose }: SoundLibraryDialog
                         flexShrink: 0,
                       }}
                     >
-                      Ajouter
+                      {t('add')}
                     </Button>
                   )}
                 </Box>
@@ -613,10 +615,10 @@ export default function SoundLibraryDialog({ open, onClose }: SoundLibraryDialog
               <Whatshot sx={{ fontSize: 28, color: 'primary.main', opacity: 0.6 }} />
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', fontWeight: 500 }}>
-              Recherchez parmi des milliers de sons
+              {t('searchLibraryHint')}
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', opacity: 0.6 }}>
-              Utilisez la barre de recherche ou cliquez sur une catégorie
+              {t('useSearchOrCategory')}
             </Typography>
           </Box>
         )}

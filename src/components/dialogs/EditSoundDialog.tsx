@@ -31,6 +31,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { Sound } from '../../types';
 import { useAppStore } from '../../stores/appStore';
 import WaveformTrimEditor from '../sound/WaveformTrimEditor';
+import { useI18n } from '../../i18n/I18nProvider';
 
 interface EditSoundDialogProps {
   open: boolean;
@@ -79,6 +80,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
   const data = useAppStore(s => s.data);
   const profile = data?.profiles.find(p => p.id === data.settings.activeProfileId);
   const categories = profile?.categories ?? [];
+  const { t } = useI18n();
 
   useEffect(() => {
     if (sound) {
@@ -188,7 +190,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
-          Modifier le son
+          {t('editSound')}
         </Typography>
         <IconButton onClick={onClose} size="small">
           <Close />
@@ -223,7 +225,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
 
             {/* Name */}
             <TextField
-              label="Nom du son"
+              label={t('soundName')}
               value={name}
               onChange={e => setName(e.target.value)}
               fullWidth
@@ -258,7 +260,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
           >
             <Box sx={{ p: 2, width: 280 }}>
               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                Choisir une icône
+                {t('chooseIcon')}
               </Typography>
               <Grid container spacing={0.5}>
                 {EMOJI_LIST.map(emoji => (
@@ -295,7 +297,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
           >
             <Box sx={{ p: 2, width: 240 }}>
               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                Choisir une couleur
+                {t('chooseColor')}
               </Typography>
               <Grid container spacing={0.5}>
                 {COLOR_PALETTE.map(c => (
@@ -321,11 +323,11 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
 
           {/* Category */}
           <FormControl size="small" fullWidth>
-            <InputLabel>Catégorie</InputLabel>
+            <InputLabel>{t('category')}</InputLabel>
             <Select
               value={category}
               onChange={e => setCategory(e.target.value)}
-              label="Catégorie"
+              label={t('category')}
             >
               {categories.map(cat => (
                 <MenuItem key={cat.id} value={cat.id}>
@@ -340,7 +342,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
           {/* Volume */}
           <Box>
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-              Volume — {Math.round(volume * 100)}%
+              {t('volume')} — {Math.round(volume * 100)}%
             </Typography>
             <Slider
               value={volume}
@@ -363,7 +365,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
             }
             label={
               <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                Lecture en boucle
+                {t('loopPlayback')}
               </Typography>
             }
           />
@@ -371,7 +373,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
           {/* Speed control */}
           <Box>
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-              Vitesse — {speed.toFixed(2)}x
+              {t('speed')} — {speed.toFixed(2)}x
             </Typography>
             <Slider
               value={speed}
@@ -392,7 +394,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
           {/* Fade in */}
           <Box>
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-              Fondu entrant — {fadeIn.toFixed(1)}s
+              {t('fadeIn')} — {fadeIn.toFixed(1)}s
             </Typography>
             <Slider
               value={fadeIn}
@@ -412,7 +414,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
           {/* Fade out */}
           <Box>
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-              Fondu sortant — {fadeOut.toFixed(1)}s
+              {t('fadeOut')} — {fadeOut.toFixed(1)}s
             </Typography>
             <Slider
               value={fadeOut}
@@ -434,11 +436,11 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
           {/* Hotkey */}
           <Box>
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-              Raccourci clavier
+              {t('hotkey')}
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <TextField
-                value={recordingHotkey ? '⏳ Appuyez sur une touche...' : (hotkey ?? 'Aucun')}
+                value={recordingHotkey ? t('pressKey') : (hotkey ?? t('noHotkey'))}
                 size="small"
                 fullWidth
                 slotProps={{
@@ -477,7 +479,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
           {/* Tags */}
           <Box>
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-              Tags
+              {t('tags')}
             </Typography>
             <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 1 }}>
               {tags.map(tag => (
@@ -491,7 +493,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
               ))}
             </Box>
             <TextField
-              placeholder="Ajouter un tag..."
+              placeholder={t('addTag')}
               value={tagInput}
               onChange={e => setTagInput(e.target.value)}
               onKeyDown={e => {
@@ -507,7 +509,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
           {/* Waveform trim editor */}
           <Box>
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-              Rogner le son
+              {t('trimSound')}
             </Typography>
             {sound?.filePath && (
               <WaveformTrimEditor
@@ -523,7 +525,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
 
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} color="inherit">
-          Annuler
+          {t('cancel')}
         </Button>
         <Button
           onClick={handleSave}
@@ -531,7 +533,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
           disabled={!name.trim()}
           sx={{ borderRadius: 3, px: 3 }}
         >
-          Sauvegarder
+          {t('save')}
         </Button>
       </DialogActions>
     </Dialog>

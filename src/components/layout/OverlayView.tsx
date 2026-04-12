@@ -10,6 +10,7 @@ import {
 } from '@mui/icons-material';
 import TomBoardLogo from '../TomBoardLogo';
 import { useAppStore, useFilteredSounds } from '../../stores/appStore';
+import { useI18n } from '../../i18n/I18nProvider';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { currentMonitor } from '@tauri-apps/api/window';
 import { LogicalPosition } from '@tauri-apps/api/dpi';
@@ -48,6 +49,7 @@ export default function OverlayView({ onExitOverlay }: OverlayViewProps) {
   const playSound = useAppStore(s => s.playSound);
   const playingIds = useAppStore(s => s.playingIds);
   const stopAll = useAppStore(s => s.stopAll);
+  const { t } = useI18n();
 
   return (
     <Box
@@ -96,7 +98,7 @@ export default function OverlayView({ onExitOverlay }: OverlayViewProps) {
         </Box>
         <Box sx={{ display: 'flex', gap: 0.25, WebkitAppRegion: 'no-drag' }}>
           {playingIds.length > 0 && (
-            <Tooltip title="Tout arrêter" arrow>
+            <Tooltip title={t('stopAll')} arrow>
               <IconButton size="small" onClick={stopAll} sx={{ color: 'error.main', width: 22, height: 22 }}>
                 <StopCircle sx={{ fontSize: 13 }} />
               </IconButton>

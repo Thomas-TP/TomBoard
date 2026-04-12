@@ -48,7 +48,7 @@ export default function StatusBar() {
       <Box
         role="status"
         aria-live="polite"
-        aria-label={playingCount > 0 ? `${playingCount} son${playingCount > 1 ? 's' : ''} en lecture: ${playingNames.join(', ')}` : 'Aucun son en lecture'}
+        aria-label={playingCount > 0 ? `${playingCount} ${t('soundsPlaying')}: ${playingNames.join(', ')}` : t('noSoundsPlaying')}
         sx={{
           display: 'flex',
           alignItems: 'center',

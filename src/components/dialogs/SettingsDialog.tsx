@@ -92,6 +92,7 @@ interface SettingsDialogProps {
 }
 
 function SortableCategoryItem({ cat, soundCount, onDelete }: { cat: Category; soundCount: number; onDelete: (id: string) => void }) {
+  const { t } = useI18n();
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: cat.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
 
@@ -106,7 +107,7 @@ function SortableCategoryItem({ cat, soundCount, onDelete }: { cat: Category; so
         </Box>
       </ListItemIcon>
       <ListItemText primary={cat.name} slotProps={{ primary: { sx: { fontWeight: 500, fontSize: '0.85rem' } } }} />
-      <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>{soundCount} sons</Typography>
+      <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>{soundCount} {t('sounds')}</Typography>
       {cat.id !== 'all' && (
         <IconButton size="small" onClick={() => onDelete(cat.id)} sx={{ color: 'error.main' }}>
           <Delete sx={{ fontSize: 16 }} />
@@ -128,7 +129,7 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const deleteProfile = useAppStore(s => s.deleteProfile);
   const duplicateProfile = useAppStore(s => s.duplicateProfile);
   const loadData = useAppStore(s => s.loadData);
-  const { setLocale } = useI18n();
+  const { t, setLocale } = useI18n();
 
   const [tab, setTab] = useState(0);
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -182,22 +183,22 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const handleInstallPiper = async () => {
     try {
       setPiperStatus('detecting');
-      setPiperMessage('Détection de Python...');
+      setPiperMessage(t('detectingPython'));
       const pythonPath = await invoke<string>('detect_python');
 
       setPiperStatus('installing');
-      setPiperMessage('Installation de piper-tts via pip...');
+      setPiperMessage(t('installingPiper'));
       await invoke<string>('install_piper', { pythonPath });
       update({ piperPath: pythonPath });
 
       setPiperStatus('downloading-model');
       const lang = settings.language ?? 'fr';
-      setPiperMessage(`Téléchargement du modèle ${lang === 'fr' ? 'français' : 'anglais'}...`);
+      setPiperMessage(`${t('downloadingModel')}...`);
       const modelPath = await invoke<string>('download_piper_model', { lang });
       update({ piperModel: modelPath });
 
       setPiperStatus('done');
-      setPiperMessage('Piper TTS installé et configuré !');
+      setPiperMessage(t('piperDone'));
     } catch (e: any) {
       setPiperStatus('error');
       setPiperMessage(String(e));
@@ -260,29 +261,29 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
 
   const handleExport = async () => {
     try {
-      const path = await save({ title: 'Exporter la configuration TomBoard', defaultPath: 'tomboard-backup.zip', filters: [{ name: 'TomBoard Backup', extensions: ['zip'] }] });
+      const path = await save({ title: t('exportConfig'), defaultPath: 'tomboard-backup.zip', filters: [{ name: 'TomBoard Backup', extensions: ['zip'] }] });
       if (!path) return;
       setIeLoading(true); setIeMessage(null);
       await invoke('export_data', { destPath: path });
-      setIeMessage({ type: 'success', text: 'Export réussi !' });
-    } catch (e) { setIeMessage({ type: 'error', text: `Erreur d'export : ${e}` }); } finally { setIeLoading(false); }
+      setIeMessage({ type: 'success', text: t('exportSuccess') });
+    } catch (e) { setIeMessage({ type: 'error', text: `${t('exportError')} ${e}` }); } finally { setIeLoading(false); }
   };
 
   const handleImport = async () => {
     try {
-      const path = await openDialog({ title: 'Importer une configuration TomBoard', filters: [{ name: 'TomBoard Backup', extensions: ['zip'] }], multiple: false });
+      const path = await openDialog({ title: t('importConfig'), filters: [{ name: 'TomBoard Backup', extensions: ['zip'] }], multiple: false });
       if (!path) return;
       setIeLoading(true); setIeMessage(null);
       await invoke('import_data', { sourcePath: path });
       await loadData();
-      setIeMessage({ type: 'success', text: 'Import réussi ! Les données ont été restaurées.' });
-    } catch (e) { setIeMessage({ type: 'error', text: `Erreur d'import : ${e}` }); } finally { setIeLoading(false); }
+      setIeMessage({ type: 'success', text: t('importSuccess') });
+    } catch (e) { setIeMessage({ type: 'error', text: `${t('importError')} ${e}` }); } finally { setIeLoading(false); }
   };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth slotProps={{ paper: { sx: { borderRadius: 3, bgcolor: 'background.paper', height: '80vh', maxHeight: 680, display: 'flex', flexDirection: 'column' } } }}>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, flexShrink: 0 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.75, fontSize: '1rem' }}><SettingsIcon sx={{ fontSize: 20 }} /> Paramètres</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.75, fontSize: '1rem' }}><SettingsIcon sx={{ fontSize: 20 }} /> {t('settings')}</Typography>
         <IconButton onClick={onClose} size="small"><Close /></IconButton>
       </DialogTitle>
 
@@ -290,9 +291,9 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         {/* Sidebar navigation */}
         <Box sx={{ width: 180, flexShrink: 0, borderRight: '1px solid', borderColor: 'divider', py: 1, px: 1, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
           {([
-            [0, 'Général', <SettingsIcon key="g" sx={{ fontSize: 17 }} />],
-            [1, 'Audio', <VolumeUp key="a" sx={{ fontSize: 17 }} />],
-            [2, 'Communication', <MicIcon key="d" sx={{ fontSize: 17 }} />],
+            [0, t('general'), <SettingsIcon key="g" sx={{ fontSize: 17 }} />],
+            [1, t('audio'), <VolumeUp key="a" sx={{ fontSize: 17 }} />],
+            [2, t('communication'), <MicIcon key="d" sx={{ fontSize: 17 }} />],
           ] as [number, string, React.ReactNode][]).map(([idx, label, icon]) => (
             <ListItemButton key={idx} selected={tab === idx} onClick={() => setTab(idx)} sx={{ borderRadius: '8px', py: 0.75, px: 1.25, minHeight: 36, gap: 1, '&.Mui-selected': { bgcolor: 'rgba(124, 92, 252, 0.12)', color: 'primary.main', '&:hover': { bgcolor: 'rgba(124, 92, 252, 0.16)' } } }}>
               {icon}
@@ -301,8 +302,8 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           ))}
           <Divider sx={{ my: 0.75 }} />
           {([
-            [3, 'Catégories', <Palette key="c" sx={{ fontSize: 17 }} />],
-            [4, 'Profils', <SettingsIcon key="p" sx={{ fontSize: 17 }} />],
+            [3, t('categories'), <Palette key="c" sx={{ fontSize: 17 }} />],
+            [4, t('profiles'), <SettingsIcon key="p" sx={{ fontSize: 17 }} />],
           ] as [number, string, React.ReactNode][]).map(([idx, label, icon]) => (
             <ListItemButton key={idx} selected={tab === idx} onClick={() => setTab(idx)} sx={{ borderRadius: '8px', py: 0.75, px: 1.25, minHeight: 36, gap: 1, '&.Mui-selected': { bgcolor: 'rgba(124, 92, 252, 0.12)', color: 'primary.main', '&:hover': { bgcolor: 'rgba(124, 92, 252, 0.16)' } } }}>
               {icon}
@@ -311,8 +312,8 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           ))}
           <Divider sx={{ my: 0.75 }} />
           {([
-            [5, 'Sauvegarde', <FileDownload key="s" sx={{ fontSize: 17 }} />],
-            [6, 'Mise à jour', <SystemUpdateAlt key="u" sx={{ fontSize: 17 }} />],
+            [5, t('backup'), <FileDownload key="s" sx={{ fontSize: 17 }} />],
+            [6, t('update'), <SystemUpdateAlt key="u" sx={{ fontSize: 17 }} />],
           ] as [number, string, React.ReactNode][]).map(([idx, label, icon]) => (
             <ListItemButton key={idx} selected={tab === idx} onClick={() => setTab(idx)} sx={{ borderRadius: '8px', py: 0.75, px: 1.25, minHeight: 36, gap: 1, '&.Mui-selected': { bgcolor: 'rgba(124, 92, 252, 0.12)', color: 'primary.main', '&:hover': { bgcolor: 'rgba(124, 92, 252, 0.16)' } } }}>
               {icon}
@@ -325,21 +326,21 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         <Box sx={{ flex: 1, overflow: 'auto', px: 3, py: 2, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
         {tab === 0 && (
           <>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Général</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>{t('general')}</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 {settings.theme === 'dark' ? <DarkMode sx={{ fontSize: 20 }} /> : <LightMode sx={{ fontSize: 20 }} />}
-                <Typography variant="body2">Thème</Typography>
+                <Typography variant="body2">{t('theme')}</Typography>
               </Box>
               <Select value={settings.theme} onChange={e => update({ theme: e.target.value as 'dark' | 'light' })} size="small" sx={{ minWidth: 120 }}>
-                <MenuItem value="dark">Sombre</MenuItem>
-                <MenuItem value="light">Clair</MenuItem>
+                <MenuItem value="dark">{t('dark')}</MenuItem>
+                <MenuItem value="light">{t('light')}</MenuItem>
               </Select>
             </Box>
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <Palette sx={{ fontSize: 20 }} />
-                <Typography variant="body2">Couleur d'accent</Typography>
+                <Typography variant="body2">{t('accentColor')}</Typography>
               </Box>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
                 {SEED_COLORS.map(color => (
@@ -349,29 +350,29 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             </Box>
             <Divider />
             <Box>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>Stockage</Typography>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>{t('storage')}</Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <Folder sx={{ fontSize: 20 }} />
-                <Typography variant="body2">Dossier de données</Typography>
+                <Typography variant="body2">{t('dataFolder')}</Typography>
               </Box>
               <TextField value={appDataDir} size="small" fullWidth slotProps={{ input: { readOnly: true } }} sx={{ mb: 1.5 }} />
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <FolderOpen sx={{ fontSize: 20 }} />
-                <Typography variant="body2">Dossier de sons personnalisé</Typography>
+                <Typography variant="body2">{t('customSoundsFolder')}</Typography>
               </Box>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>Laissez vide pour utiliser le dossier par défaut</Typography>
-              <TextField value={settings.soundsFolder} onChange={e => update({ soundsFolder: e.target.value })} size="small" fullWidth placeholder="Par défaut" />
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>{t('customSoundsFolderHint')}</Typography>
+              <TextField value={settings.soundsFolder} onChange={e => update({ soundsFolder: e.target.value })} size="small" fullWidth placeholder={t('defaultPlaceholder')} />
             </Box>
             <Divider />
             <Box>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>Comportement</Typography>
-              <FormControlLabel control={<Switch checked={settings.minimizeToTray} onChange={e => update({ minimizeToTray: e.target.checked })} size="small" />} label={<Typography variant="body2">Minimiser dans la barre système</Typography>} />
-              <FormControlLabel control={<Switch checked={settings.launchMinimized} onChange={e => update({ launchMinimized: e.target.checked })} size="small" />} label={<Typography variant="body2">Démarrer minimisé</Typography>} />
-              <FormControlLabel control={<Switch checked={settings.discordRpc ?? true} onChange={e => update({ discordRpc: e.target.checked })} size="small" />} label={<Typography variant="body2">Discord Rich Presence</Typography>} />
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>{t('behavior')}</Typography>
+              <FormControlLabel control={<Switch checked={settings.minimizeToTray} onChange={e => update({ minimizeToTray: e.target.checked })} size="small" />} label={<Typography variant="body2">{t('minimizeToTray')}</Typography>} />
+              <FormControlLabel control={<Switch checked={settings.launchMinimized} onChange={e => update({ launchMinimized: e.target.checked })} size="small" />} label={<Typography variant="body2">{t('launchMinimized')}</Typography>} />
+              <FormControlLabel control={<Switch checked={settings.discordRpc ?? true} onChange={e => update({ discordRpc: e.target.checked })} size="small" />} label={<Typography variant="body2">{t('discordRpc')}</Typography>} />
             </Box>
             <Divider />
             <Box>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>Langue / Language</Typography>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>{t('languageSetting')}</Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 {(['fr', 'en'] as const).map(lang => (
                   <Box
@@ -394,17 +395,17 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             </Box>
             <Divider />
             <Box>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>Piper TTS (Synthèse vocale locale)</Typography>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>{t('piperTts')}</Typography>
               <Typography variant="caption" color="text.secondary" sx={{ mb: 1.5, display: 'block' }}>
-                Piper est un moteur TTS open-source ultra-rapide. Cliquez sur le bouton pour l'installer automatiquement.
+                {t('piperDescription')}
               </Typography>
               {settings.piperPath && settings.piperModel ? (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                   <Alert severity="success" sx={{ borderRadius: 2, py: 0.25 }}>
-                    Piper configuré — Python : <strong>{settings.piperPath}</strong>
+                    {t('piperConfigured')} <strong>{settings.piperPath}</strong>
                   </Alert>
                   <TextField
-                    label="Chemin vers le modèle .onnx"
+                    label={t('piperModelPath')}
                     value={settings.piperModel}
                     onChange={e => update({ piperModel: e.target.value })}
                     size="small"
@@ -416,7 +417,7 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     color="error"
                     onClick={() => { update({ piperPath: '', piperModel: '' }); setPiperStatus('idle'); setPiperMessage(''); }}
                   >
-                    Réinitialiser la configuration
+                    {t('resetConfig')}
                   </Button>
                 </Box>
               ) : (
@@ -427,10 +428,10 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     disabled={piperStatus === 'detecting' || piperStatus === 'installing' || piperStatus === 'downloading-model'}
                     startIcon={piperStatus !== 'idle' && piperStatus !== 'done' && piperStatus !== 'error' ? <CircularProgress size={16} color="inherit" /> : undefined}
                   >
-                    {piperStatus === 'idle' ? 'Installer Piper TTS automatiquement' :
-                     piperStatus === 'done' ? '✓ Installé' :
-                     piperStatus === 'error' ? 'Réessayer' :
-                     'Installation en cours...'}
+                    {piperStatus === 'idle' ? t('installPiper') :
+                     piperStatus === 'done' ? t('installed') :
+                     piperStatus === 'error' ? t('retry') :
+                     t('installing')}
                   </Button>
                   {piperMessage && (
                     <Alert severity={piperStatus === 'error' ? 'error' : piperStatus === 'done' ? 'success' : 'info'} sx={{ borderRadius: 2, py: 0.25, width: '100%' }}>
@@ -442,17 +443,17 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             </Box>
             <Divider />
             <Box>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>Freesound</Typography>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>{t('freesound')}</Typography>
               <Typography variant="caption" color="text.secondary" sx={{ mb: 1.5, display: 'block' }}>
-                Clé API pour rechercher et importer des sons depuis freesound.org. Obtenez-la sur freesound.org/apiv2/apply
+                {t('freesoundDescription')}
               </Typography>
               <TextField
-                label="Clé API Freesound"
+                label={t('freesoundApiKey')}
                 value={settings.freesoundApiKey}
                 onChange={e => update({ freesoundApiKey: e.target.value })}
                 size="small"
                 fullWidth
-                placeholder="Votre clé API Freesound"
+                placeholder={t('freesoundPlaceholder')}
               />
             </Box>
           </>
@@ -460,21 +461,21 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
 
         {tab === 1 && (
           <>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Audio</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>{t('audio')}</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <VolumeUp sx={{ fontSize: 20 }} />
-              <Typography variant="body2" sx={{ minWidth: 100 }}>Volume maître</Typography>
+              <Typography variant="body2" sx={{ minWidth: 100 }}>{t('masterVolumeLabel')}</Typography>
               <Slider value={settings.masterVolume} onChange={(_, v) => update({ masterVolume: v as number })} min={0} max={1} step={0.01} size="small" sx={{ flex: 1 }} />
               <Typography variant="caption" color="text.secondary" sx={{ minWidth: 30, textAlign: 'right' }}>{Math.round(settings.masterVolume * 100)}%</Typography>
             </Box>
             <FormControl fullWidth size="small">
-              <InputLabel>Périphérique de sortie</InputLabel>
-              <Select value={settings.outputDevice} onChange={e => update({ outputDevice: e.target.value })} label="Périphérique de sortie">
-                {audioDevices.filter(dev => !virtualCables.includes(dev)).map(dev => <MenuItem key={dev} value={dev}>{dev === 'default' ? 'Par défaut du système' : dev}</MenuItem>)}
+              <InputLabel>{t('outputDevice')}</InputLabel>
+              <Select value={settings.outputDevice} onChange={e => update({ outputDevice: e.target.value })} label={t('outputDevice')}>
+                {audioDevices.filter(dev => !virtualCables.includes(dev)).map(dev => <MenuItem key={dev} value={dev}>{dev === 'default' ? t('systemDefault') : dev}</MenuItem>)}
               </Select>
             </FormControl>
             <Divider />
-            <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>Suppression du bruit</Typography>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>{t('noiseSuppression')}</Typography>
             <Box
               sx={{
                 p: 1.5,
@@ -489,11 +490,11 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             >
               <FormControlLabel
                 control={<Switch checked={settings.noiseSuppression ?? false} onChange={e => update({ noiseSuppression: e.target.checked })} size="small" color="success" />}
-                label={<Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.82rem' }}>Suppression du bruit (IA)</Typography>}
+                label={<Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.82rem' }}>{t('noiseSuppressionAi')}</Typography>}
                 sx={{ m: 0 }}
               />
               <Typography variant="caption" sx={{ display: 'block', mt: 0.5, fontSize: '0.68rem', color: 'text.secondary', lineHeight: 1.4 }}>
-                Filtre les bruits de fond (clavier, souris, ventilateur) via RNNoise.
+                {t('noiseSuppressionHint')}
               </Typography>
             </Box>
           </>
@@ -501,27 +502,27 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
 
         {tab === 2 && (
           <>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Communication</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>{t('communication')}</Typography>
 
-            <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: 0.5 }}><MicIcon sx={{ fontSize: 16 }} /> Intégration audio</Typography>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: 0.5 }}><MicIcon sx={{ fontSize: 16 }} /> {t('audioIntegration')}</Typography>
 
             {virtualCables.length > 0 ? (
               <>
                 <Alert severity="success" sx={{ fontSize: '0.75rem', py: 0.5 }}>
-                  Câble virtuel actif : <strong>{virtualCables[0]}</strong>
+                  {t('virtualCableActive')} <strong>{virtualCables[0]}</strong>
                 </Alert>
                 <FormControlLabel
                   control={<Switch checked={settings.dualOutput} onChange={e => {
                     const enabled = e.target.checked;
                     update({ dualOutput: enabled, secondaryDevice: enabled ? virtualCables[0] : 'none' });
                   }} size="small" />}
-                  label={<Typography variant="body2">Diffuser dans Discord/Teams</Typography>}
+                  label={<Typography variant="body2">{t('broadcastToDiscord')}</Typography>}
                 />
                 {settings.dualOutput && (
                   <>
                     <Alert severity="info" sx={{ fontSize: '0.7rem', py: 0.5 }}>
-                      Les sons sont diffusés sur <strong>vos enceintes</strong> + <strong>{virtualCables[0]}</strong> en même temps.<br/>
-                      Dans Discord/Teams → Paramètres → Voix → Micro : sélectionnez <strong>CABLE Output (VB-Audio Virtual Cable)</strong>.
+                      {t('soundsBroadcastHint').replace('{cable}', virtualCables[0])}<br/>
+                      {t('discordSelectCableHint')}
                     </Alert>
                     <Button
                       variant="outlined"
@@ -531,34 +532,34 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                           await invoke('set_secondary_device', { deviceName: virtualCables[0] });
                           await invoke('set_dual_output', { enabled: true });
                           await invoke('test_secondary_output');
-                      setVcMessage({ type: 'success', text: 'Son test envoyé sur le câble virtuel ! Si vous entendez un bip dans Discord, ça fonctionne.' });
+                      setVcMessage({ type: 'success', text: t('testSentToVirtualCable') });
                         } catch (e) {
-                          setVcMessage({ type: 'error', text: `Erreur : ${e}` });
+                          setVcMessage({ type: 'error', text: `${e}` });
                         }
                       }}
                       sx={{ borderRadius: 2 }}
                     >
-                      🧪 Tester la sortie vers Discord
+                      {t('testDiscordOutput')}
                     </Button>
                     {vcMessage && <Alert severity={vcMessage.type} onClose={() => setVcMessage(null)} sx={{ fontSize: '0.75rem', py: 0.5 }}>{vcMessage.text}</Alert>}
 
                     <Divider />
                     <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <MicIcon sx={{ fontSize: 16 }} /> Micro en temps réel vers Discord
+                      <MicIcon sx={{ fontSize: 16 }} /> {t('micToDiscord')}
                     </Typography>
                     <Alert severity="info" sx={{ fontSize: '0.7rem', py: 0.5 }}>
-                      Redirige votre micro vers {virtualCables[0]} en même temps que la soundboard.<br/>
-                      Dans Discord, gardez <strong>CABLE Output</strong> comme micro — vous serez entendu normalement.
+                      {t('micRedirectHint').replace('{cable}', virtualCables[0])}<br/>
+                      {t('micRedirectDiscordHint')}
                     </Alert>
                     <FormControl fullWidth size="small">
-                      <InputLabel>Micro source</InputLabel>
+                      <InputLabel>{t('micSource')}</InputLabel>
                       <Select
                         value={settings.micPassthroughDevice || 'default'}
                         onChange={e => update({ micPassthroughDevice: e.target.value })}
-                        label="Micro source"
+                        label={t('micSource')}
                       >
                         {micInputDevices.map(dev => (
-                          <MenuItem key={dev} value={dev}>{dev === 'default' ? 'Micro par défaut' : dev}</MenuItem>
+                          <MenuItem key={dev} value={dev}>{dev === 'default' ? t('defaultMic') : dev}</MenuItem>
                         ))}
                       </Select>
                     </FormControl>
@@ -566,11 +567,11 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     <Divider />
                     <FormControlLabel
                       control={<Switch checked={settings.silentMode} onChange={e => update({ silentMode: e.target.checked })} size="small" />}
-                      label={<Typography variant="body2">Mode silencieux (son uniquement vers Discord)</Typography>}
+                      label={<Typography variant="body2">{t('silentModeLabel')}</Typography>}
                     />
                     <Alert severity="info" sx={{ fontSize: '0.7rem', py: 0.5 }}>
-                      <strong>Astuce Discord :</strong> Activez la <strong>Suppression du bruit (IA)</strong> dans le panneau Changeur de Voix de TomBoard, puis dans Discord → Paramètres → Voix & Vidéo → Suppression du bruit, choisissez <strong>Aucune</strong>.<br/>
-                      TomBoard gère le filtrage du bruit en interne via RNNoise — plus besoin des filtres Discord qui bloquent les sons de la soundboard.
+                      <strong>{t('discordTip')}</strong> {t('discordNoiseHint')}<br/>
+                      {t('discordNoiseHint2')}
                     </Alert>
                   </>
                 )}
@@ -578,7 +579,7 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             ) : (
               <>
                 <Alert severity="warning" sx={{ fontSize: '0.75rem', py: 0.5 }}>
-                  Aucun câble audio virtuel détecté. Il est nécessaire pour diffuser vos sons dans Discord/Teams.
+                  {t('noVirtualCable')}
                 </Alert>
                 {vcMessage && <Alert severity={vcMessage.type} onClose={() => setVcMessage(null)} sx={{ fontSize: '0.75rem', py: 0.5 }}>{vcMessage.text}</Alert>}
                 <Button
@@ -587,7 +588,7 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     setVcInstalling(true); setVcMessage(null);
                     try {
                       const msg = await invoke<string>('install_virtual_cable');
-                      setVcMessage({ type: 'success', text: msg + '\nRedémarrez TomBoard (ou votre PC) pour que le câble virtuel soit détecté.' });
+                      setVcMessage({ type: 'success', text: msg + '\n' + t('restartForCable') });
                       // Refresh device lists
                       const devs = await invoke<string[]>('list_audio_devices');
                       setAudioDevices(devs);
@@ -604,10 +605,10 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                   fullWidth
                   sx={{ py: 1.5, borderRadius: 2 }}
                 >
-                  {vcInstalling ? 'Installation en cours...' : '↓ Installer VB-Cable automatiquement'}
+                  {vcInstalling ? t('installing') : t('installVbCable')}
                 </Button>
                 <Typography variant="caption" color="text.secondary">
-                  VB-Cable est un logiciel gratuit de VB-Audio. L'installation nécessite les droits administrateur.
+                  {t('vbCableHint')}
                 </Typography>
               </>
             )}
@@ -616,10 +617,10 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
 
         {tab === 3 && (
           <>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Catégories</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>{t('categories')}</Typography>
             {profile && (
               <Alert severity="info" icon={false} sx={{ py: 0.5, borderRadius: '10px', fontSize: '0.75rem' }}>
-                Profil actif : <strong>{profile.name}</strong>
+                {t('activeProfile')} <strong>{profile.name}</strong>
               </Alert>
             )}
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -632,23 +633,23 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               </SortableContext>
             </DndContext>
             <Divider />
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Nouvelle catégorie</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{t('newCategory')}</Typography>
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              <TextField placeholder="Nom..." value={newCatName} onChange={e => setNewCatName(e.target.value)} size="small" sx={{ flex: 1 }} onKeyDown={e => { if (e.key === 'Enter') handleAddCategory(); }} />
-              <Button onClick={handleAddCategory} variant="contained" size="small" disabled={!newCatName.trim()} startIcon={<Add />} sx={{ borderRadius: 2 }}>Ajouter</Button>
+              <TextField placeholder={t('categoryNamePlaceholder')} value={newCatName} onChange={e => setNewCatName(e.target.value)} size="small" sx={{ flex: 1 }} onKeyDown={e => { if (e.key === 'Enter') handleAddCategory(); }} />
+              <Button onClick={handleAddCategory} variant="contained" size="small" disabled={!newCatName.trim()} startIcon={<Add />} sx={{ borderRadius: 2 }}>{t('add')}</Button>
             </Box>
             <Box>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>Icône: {renderCategoryIcon(newCatIcon, { sx: { fontSize: 18 } })}</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>{t('iconLabel')} {renderCategoryIcon(newCatIcon, { sx: { fontSize: 18 } })}</Typography>
               <Grid container spacing={0.5}>
                 {ICON_OPTIONS.map(opt => (
                   <Grid key={opt.id} size={{ xs: 'auto' }}>
-                    <Box onClick={() => setNewCatIcon(opt.id)} sx={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 1, cursor: 'pointer', bgcolor: newCatIcon === opt.id ? 'primary.main' : 'transparent', color: newCatIcon === opt.id ? 'primary.contrastText' : 'inherit', '&:hover': { bgcolor: 'action.hover' }, fontSize: '1.1rem' }} title={opt.label}>{renderCategoryIcon(opt.id, { sx: { fontSize: 20 } })}</Box>
+                    <Box onClick={() => setNewCatIcon(opt.id)} sx={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 1, cursor: 'pointer', bgcolor: newCatIcon === opt.id ? 'primary.main' : 'transparent', color: newCatIcon === opt.id ? 'primary.contrastText' : 'inherit', '&:hover': { bgcolor: 'action.hover' }, fontSize: '1.1rem' }} title={t(opt.i18nKey as any)}>{renderCategoryIcon(opt.id, { sx: { fontSize: 20 } })}</Box>
                   </Grid>
                 ))}
               </Grid>
             </Box>
             <Box>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>Couleur</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>{t('colorLabel')}</Typography>
               <Grid container spacing={0.5}>
                 {COLOR_PALETTE.map(c => (
                   <Grid key={c} size={{ xs: 'auto' }}>
@@ -662,7 +663,7 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
 
         {tab === 4 && (
           <>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Profils</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>{t('profiles')}</Typography>
             <List dense>
               {profiles.map(p => (
                 <ListItemButton key={p.id} selected={p.id === activeProfileId} onClick={() => switchProfile(p.id)} sx={{ py: 1.5, borderRadius: 2, mb: 0.5, '&.Mui-selected': { bgcolor: 'action.selected' } }}>
@@ -672,7 +673,7 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                   {editingProfileId === p.id ? (
                     <TextField value={editProfileName} onChange={e => setEditProfileName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleRenameProfile(p.id); if (e.key === 'Escape') setEditingProfileId(null); }} onBlur={() => handleRenameProfile(p.id)} size="small" autoFocus sx={{ flex: 1 }} onClick={e => e.stopPropagation()} />
                   ) : (
-                    <ListItemText primary={p.name} secondary={`${p.sounds.length} son${p.sounds.length > 1 ? 's' : ''} · ${p.categories.length} catégorie${p.categories.length > 1 ? 's' : ''}`} slotProps={{ primary: { sx: { fontWeight: p.id === activeProfileId ? 700 : 500 } }, secondary: { sx: { fontSize: '0.7rem' } } }} />
+                    <ListItemText primary={p.name} secondary={`${p.sounds.length} ${t('sounds')} · ${p.categories.length} ${t('categories').toLowerCase()}`} slotProps={{ primary: { sx: { fontWeight: p.id === activeProfileId ? 700 : 500 } }, secondary: { sx: { fontSize: '0.7rem' } } }} />
                   )}
                   <ListItemSecondaryAction>
                     {p.id === activeProfileId && <CheckCircle sx={{ fontSize: 16, color: 'primary.main', mr: 0.5 }} />}
@@ -683,48 +684,48 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             </List>
             <Divider />
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              <TextField value={newProfileName} onChange={e => setNewProfileName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddProfile()} placeholder="Nouveau profil..." size="small" fullWidth />
-              <Tooltip title="Ajouter"><span><IconButton onClick={handleAddProfile} disabled={!newProfileName.trim()} color="primary" size="small"><Add /></IconButton></span></Tooltip>
+              <TextField value={newProfileName} onChange={e => setNewProfileName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddProfile()} placeholder={t('newProfilePlaceholder')} size="small" fullWidth />
+              <Tooltip title={t('add')}><span><IconButton onClick={handleAddProfile} disabled={!newProfileName.trim()} color="primary" size="small"><Add /></IconButton></span></Tooltip>
             </Box>
           </>
         )}
 
         {tab === 5 && (
           <>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Sauvegarde</Typography>
-            <Typography variant="body2" color="text.secondary">Sauvegardez ou restaurez votre configuration complète (sons, profils, catégories, paramètres).</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>{t('backup')}</Typography>
+            <Typography variant="body2" color="text.secondary">{t('backupDescription')}</Typography>
             {ieLoading && <LinearProgress />}
             {ieMessage && <Alert severity={ieMessage.type} onClose={() => setIeMessage(null)}>{ieMessage.text}</Alert>}
             <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button variant="outlined" startIcon={<FileDownload />} onClick={handleExport} disabled={ieLoading} fullWidth sx={{ py: 2, borderRadius: 2 }}>Exporter</Button>
-              <Button variant="outlined" startIcon={<FileUpload />} onClick={handleImport} disabled={ieLoading} fullWidth sx={{ py: 2, borderRadius: 2 }}>Importer</Button>
+              <Button variant="outlined" startIcon={<FileDownload />} onClick={handleExport} disabled={ieLoading} fullWidth sx={{ py: 2, borderRadius: 2 }}>{t('exportButton')}</Button>
+              <Button variant="outlined" startIcon={<FileUpload />} onClick={handleImport} disabled={ieLoading} fullWidth sx={{ py: 2, borderRadius: 2 }}>{t('importButton')}</Button>
             </Box>
-            <Typography variant="caption" color="text.secondary">L'import remplacera toutes vos données actuelles. Pensez à exporter d'abord en guise de sauvegarde.</Typography>
+            <Typography variant="caption" color="text.secondary">{t('importWarning')}</Typography>
           </>
         )}
 
         {tab === 6 && (
           <>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Mise à jour</Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>{t('update')}</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="body2" color="text.secondary">Version actuelle :</Typography>
+              <Typography variant="body2" color="text.secondary">{t('currentVersion')}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 700 }}>v{currentVersion}</Typography>
             </Box>
             <Divider />
             {updateStatus === 'up-to-date' && (
-              <Alert severity="success" sx={{ fontSize: '0.8rem' }}>Vous êtes à jour !</Alert>
+              <Alert severity="success" sx={{ fontSize: '0.8rem' }}>{t('upToDate')}</Alert>
             )}
             {updateStatus === 'error' && (
               <Alert severity="error" sx={{ fontSize: '0.8rem' }}>{updateError}</Alert>
             )}
             {updateVersion && updateStatus !== 'downloading' && (
               <Alert severity="info" sx={{ fontSize: '0.8rem' }}>
-                Nouvelle version disponible : <strong>v{updateVersion}</strong>
+                {t('newVersionAvailable')} <strong>v{updateVersion}</strong>
               </Alert>
             )}
             {updateStatus === 'downloading' && (
               <>
-                <Alert severity="info" sx={{ fontSize: '0.8rem' }}>Téléchargement et installation de la v{updateVersion}...</Alert>
+                <Alert severity="info" sx={{ fontSize: '0.8rem' }}>{t('downloadingUpdate')} v{updateVersion}...</Alert>
                 <LinearProgress />
               </>
             )}
@@ -754,7 +755,7 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 fullWidth
                 sx={{ py: 1.5, borderRadius: 2 }}
               >
-                {updateStatus === 'checking' ? 'Vérification...' : 'Vérifier les mises à jour'}
+                {updateStatus === 'checking' ? t('checking') : t('checkUpdates')}
               </Button>
               {updateVersion && (
                 <Button
@@ -773,12 +774,12 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                   fullWidth
                   sx={{ py: 1.5, borderRadius: 2 }}
                 >
-                  {updateStatus === 'downloading' ? 'Installation...' : `Installer v${updateVersion}`}
+                  {updateStatus === 'downloading' ? t('installing') : `${t('installVersion')} v${updateVersion}`}
                 </Button>
               )}
             </Box>
             <Typography variant="caption" color="text.secondary">
-              Les mises à jour sont téléchargées depuis GitHub. L'application redémarrera automatiquement après l'installation.
+              {t('updatesHint')}
             </Typography>
           </>
         )}
@@ -788,14 +789,14 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       </Box>
 
       <DialogActions sx={{ px: 3, py: 2, flexShrink: 0, borderTop: '1px solid', borderColor: 'divider' }}>
-        <Button onClick={onClose} color="inherit">Annuler</Button>
-        <Button onClick={handleSave} variant="contained">Enregistrer</Button>
+        <Button onClick={onClose} color="inherit">{t('cancel')}</Button>
+        <Button onClick={handleSave} variant="contained">{t('save')}</Button>
       </DialogActions>
 
       <Menu anchorEl={profileMenuAnchor?.el} open={!!profileMenuAnchor} onClose={() => setProfileMenuAnchor(null)}>
-        <MenuItem onClick={() => profileMenuAnchor && startEditingProfile(profileMenuAnchor.profileId)}><Edit sx={{ fontSize: 18, mr: 1 }} /> Renommer</MenuItem>
-        <MenuItem onClick={() => profileMenuAnchor && handleDuplicateProfile(profileMenuAnchor.profileId)}><ContentCopy sx={{ fontSize: 18, mr: 1 }} /> Dupliquer</MenuItem>
-        {profiles.length > 1 && <MenuItem onClick={() => profileMenuAnchor && handleDeleteProfile(profileMenuAnchor.profileId)} sx={{ color: 'error.main' }}><Delete sx={{ fontSize: 18, mr: 1 }} /> Supprimer</MenuItem>}
+        <MenuItem onClick={() => profileMenuAnchor && startEditingProfile(profileMenuAnchor.profileId)}><Edit sx={{ fontSize: 18, mr: 1 }} /> {t('rename')}</MenuItem>
+        <MenuItem onClick={() => profileMenuAnchor && handleDuplicateProfile(profileMenuAnchor.profileId)}><ContentCopy sx={{ fontSize: 18, mr: 1 }} /> {t('duplicate')}</MenuItem>
+        {profiles.length > 1 && <MenuItem onClick={() => profileMenuAnchor && handleDeleteProfile(profileMenuAnchor.profileId)} sx={{ color: 'error.main' }}><Delete sx={{ fontSize: 18, mr: 1 }} /> {t('delete')}</MenuItem>}
       </Menu>
     </Dialog>
   );

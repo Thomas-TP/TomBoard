@@ -7,7 +7,7 @@ interface I18nContextValue {
   setLocale: (locale: Locale) => void;
 }
 
-const I18nContext = createContext<I18nContextValue>({
+export const I18nContext = createContext<I18nContextValue>({
   locale: 'fr',
   t: (key) => translations.fr[key],
   setLocale: () => {},

@@ -25,6 +25,7 @@ import {
 } from '@mui/icons-material';
 import { invoke } from '@tauri-apps/api/core';
 import { useAppStore } from '../../stores/appStore';
+import { useI18n } from '../../i18n/I18nProvider';
 
 interface RecordDialogProps {
   open: boolean;
@@ -33,6 +34,7 @@ interface RecordDialogProps {
 
 export default function RecordDialog({ open, onClose }: RecordDialogProps) {
   const [name, setName] = useState('');
+  const { t } = useI18n();
   const [category, setCategory] = useState('all');
   const [recording, setRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -130,7 +132,7 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
       updateLevel();
 
       if (!name) {
-        setName(`Enregistrement ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`);
+        setName(`${t('recording')} ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`);
       }
     } catch (e) {
       console.error('Failed to start recording:', e);
@@ -214,7 +216,7 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h6" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Mic sx={{ fontSize: 22 }} /> Enregistrer un son
+          <Mic sx={{ fontSize: 22 }} /> {t('recordSound')}
         </Typography>
         <IconButton onClick={onClose} size="small" disabled={recording}>
           <Close />
@@ -289,7 +291,7 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
             ) : audioBlob ? (
               <>
                 <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                  Enregistrement terminé — {formatDuration(duration)}
+                  {t('recordingDone')} {formatDuration(duration)}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <IconButton
@@ -317,7 +319,7 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
             ) : (
               <>
                 <Typography variant="body2" color="text.secondary">
-                  Cliquez pour commencer l'enregistrement
+                  {t('clickToStartRecording')}
                 </Typography>
                 <IconButton
                   onClick={startRecording}
@@ -337,7 +339,7 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
 
           {/* Name */}
           <TextField
-            label="Nom de l'enregistrement"
+            label={t('recordingName')}
             value={name}
             onChange={e => setName(e.target.value)}
             fullWidth
@@ -346,11 +348,11 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
 
           {/* Category */}
           <FormControl size="small" fullWidth>
-            <InputLabel>Catégorie</InputLabel>
+            <InputLabel>{t('category')}</InputLabel>
             <Select
               value={category}
               onChange={e => setCategory(e.target.value)}
-              label="Catégorie"
+              label={t('category')}
             >
               {categories.map(cat => (
                 <MenuItem key={cat.id} value={cat.id}>
@@ -364,7 +366,7 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
 
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} color="inherit" disabled={recording}>
-          Annuler
+          {t('cancel')}
         </Button>
         <Button
           onClick={handleSave}
@@ -372,7 +374,7 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
           disabled={!audioBlob || !name.trim() || saving || recording}
           sx={{ borderRadius: 3, px: 3 }}
         >
-          {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+          {saving ? t('saving') : t('save')}
         </Button>
       </DialogActions>
     </Dialog>
