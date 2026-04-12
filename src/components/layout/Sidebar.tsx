@@ -8,7 +8,6 @@ import {
   Typography,
   Divider,
   Avatar,
-  IconButton,
   Tooltip,
 } from '@mui/material';
 import {
@@ -25,8 +24,6 @@ import {
   Pets,
   Forest,
   Celebration,
-  ChevronLeft,
-  ChevronRight,
 } from '@mui/icons-material';
 import { useAppStore } from '../../stores/appStore';
 
@@ -69,6 +66,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
   const [isResizing, setIsResizing] = useState(false);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const profile = data?.profiles.find(p => p.id === data.settings.activeProfileId);
   const categories = profile?.categories ?? [];
@@ -76,6 +74,24 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
 
   const isCollapsed = collapsed || width <= MIN_WIDTH;
   const displayWidth = isCollapsed ? MIN_WIDTH : width;
+
+  const handleMouseEnter = useCallback(() => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    if (isCollapsed) {
+      hoverTimeoutRef.current = setTimeout(() => {
+        onToggleCollapse?.();
+      }, 200);
+    }
+  }, [isCollapsed, onToggleCollapse]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    if (!isCollapsed && !isResizing) {
+      hoverTimeoutRef.current = setTimeout(() => {
+        onToggleCollapse?.();
+      }, 400);
+    }
+  }, [isCollapsed, isResizing, onToggleCollapse]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -121,6 +137,8 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
 
   return (
     <Box
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       sx={{
         display: 'flex',
         height: '100%',
@@ -144,25 +162,6 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
         transition: isResizing ? 'none' : 'width 0.2s ease, min-width 0.2s ease',
       }}
     >
-      {/* Collapse toggle */}
-      <Box sx={{ display: 'flex', justifyContent: isCollapsed ? 'center' : 'flex-end', px: isCollapsed ? 0 : 1, pt: 1 }}>
-        <Tooltip title={isCollapsed ? 'Ouvrir la sidebar' : 'Réduire la sidebar'} arrow placement="right">
-          <IconButton
-            size="small"
-            onClick={onToggleCollapse}
-            aria-label={isCollapsed ? 'Ouvrir la sidebar' : 'Réduire la sidebar'}
-            sx={{
-              width: 24,
-              height: 24,
-              borderRadius: '6px',
-              color: 'text.secondary',
-              '&:hover': { bgcolor: 'action.hover' },
-            }}
-          >
-            {isCollapsed ? <ChevronRight sx={{ fontSize: 16 }} /> : <ChevronLeft sx={{ fontSize: 16 }} />}
-          </IconButton>
-        </Tooltip>
-      </Box>
 
       {/* Categories */}
       {!isCollapsed && (

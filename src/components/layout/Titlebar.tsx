@@ -1,16 +1,10 @@
-import { useState } from 'react';
 import {
   Box,
   IconButton,
   Typography,
   InputBase,
   Tooltip,
-  Menu,
-  MenuItem,
-  Avatar,
   Divider,
-  ListItemIcon,
-  ListItemText,
 } from '@mui/material';
 import {
   Minimize,
@@ -22,7 +16,6 @@ import {
   Mic as MicIcon,
   PictureInPicture,
   LibraryMusic,
-  CheckCircle,
   History,
 } from '@mui/icons-material';
 import TomBoardLogo from '../TomBoardLogo';
@@ -50,12 +43,6 @@ export default function Titlebar({
 }: TitlebarProps) {
   const searchQuery = useAppStore(s => s.searchQuery);
   const setSearchQuery = useAppStore(s => s.setSearchQuery);
-  const data = useAppStore(s => s.data);
-  const switchProfile = useAppStore(s => s.switchProfile);
-  const [profileAnchor, setProfileAnchor] = useState<HTMLElement | null>(null);
-
-  const profiles = data?.profiles ?? [];
-  const activeProfile = profiles.find(p => p.id === data?.settings.activeProfileId);
 
   return (
     <Box
@@ -128,90 +115,6 @@ export default function Titlebar({
 
       {/* Spacer (draggable) */}
       <Box sx={{ flex: 1 }} data-tauri-drag-region />
-
-      {/* Profile selector */}
-      <Box sx={{ WebkitAppRegion: 'no-drag' }}>
-        <Tooltip title={`Profil: ${activeProfile?.name ?? '—'}`} arrow>
-          <IconButton
-            size="small"
-            onClick={e => setProfileAnchor(e.currentTarget)}
-            sx={{
-              borderRadius: '8px',
-              px: 1,
-              py: 0.4,
-              gap: 0.5,
-              color: 'text.secondary',
-              border: '1px solid',
-              borderColor: 'divider',
-              '&:hover': { bgcolor: 'action.hover', borderColor: 'text.secondary' },
-            }}
-          >
-            <Avatar
-              sx={{
-                width: 18,
-                height: 18,
-                fontSize: '0.55rem',
-                fontWeight: 700,
-                bgcolor: 'primary.main',
-                color: 'primary.contrastText',
-              }}
-            >
-              {activeProfile?.name[0] ?? 'P'}
-            </Avatar>
-            <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: 'text.primary' }}>
-              {activeProfile?.name ?? 'Profil'}
-            </Typography>
-          </IconButton>
-        </Tooltip>
-        <Menu
-          anchorEl={profileAnchor}
-          open={!!profileAnchor}
-          onClose={() => setProfileAnchor(null)}
-          slotProps={{
-            paper: { sx: { borderRadius: '12px', minWidth: 180, mt: 0.5 } },
-          }}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        >
-          {profiles.map(p => (
-            <MenuItem
-              key={p.id}
-              onClick={() => { switchProfile(p.id); setProfileAnchor(null); }}
-              selected={p.id === data?.settings.activeProfileId}
-              sx={{ borderRadius: '8px', mx: 0.5, fontSize: '0.82rem', py: 0.75 }}
-            >
-              <ListItemIcon sx={{ minWidth: 28 }}>
-                <Avatar
-                  sx={{
-                    width: 20,
-                    height: 20,
-                    fontSize: '0.55rem',
-                    fontWeight: 700,
-                    bgcolor: p.id === data?.settings.activeProfileId ? 'primary.main' : 'action.hover',
-                    color: p.id === data?.settings.activeProfileId ? 'primary.contrastText' : 'text.secondary',
-                  }}
-                >
-                  {p.name[0]}
-                </Avatar>
-              </ListItemIcon>
-              <ListItemText
-                primary={p.name}
-                secondary={`${p.sounds.length} son${p.sounds.length > 1 ? 's' : ''}`}
-                slotProps={{
-                  primary: { sx: { fontSize: '0.8rem', fontWeight: p.id === data?.settings.activeProfileId ? 600 : 400 } },
-                  secondary: { sx: { fontSize: '0.65rem' } },
-                }}
-              />
-              {p.id === data?.settings.activeProfileId && (
-                <CheckCircle sx={{ fontSize: 14, color: 'primary.main', ml: 1 }} />
-              )}
-            </MenuItem>
-          ))}
-        </Menu>
-      </Box>
-
-      {/* Divider */}
-      <Divider orientation="vertical" sx={{ height: 20, mx: 0.25 }} />
 
       {/* Action buttons */}
       <Box sx={{ display: 'flex', gap: 0.25, WebkitAppRegion: 'no-drag' }}>

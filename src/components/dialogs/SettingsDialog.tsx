@@ -28,6 +28,7 @@ import {
   Alert,
   ListItemButton,
   ListItemSecondaryAction,
+  CircularProgress,
 } from '@mui/material';
 import {
   DarkMode,
@@ -150,6 +151,8 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [updateVersion, setUpdateVersion] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [currentVersion, setCurrentVersion] = useState<string>('');
+  const [piperStatus, setPiperStatus] = useState<'idle' | 'detecting' | 'installing' | 'downloading-model' | 'done' | 'error'>('idle');
+  const [piperMessage, setPiperMessage] = useState<string>('');
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const profile = data?.profiles.find(p => p.id === data.settings.activeProfileId);
@@ -175,6 +178,31 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   if (!settings) return null;
 
   const update = (patch: Partial<AppSettings>) => setSettings(prev => prev ? { ...prev, ...patch } : prev);
+
+  const handleInstallPiper = async () => {
+    try {
+      setPiperStatus('detecting');
+      setPiperMessage('Détection de Python...');
+      const pythonPath = await invoke<string>('detect_python');
+
+      setPiperStatus('installing');
+      setPiperMessage('Installation de piper-tts via pip...');
+      await invoke<string>('install_piper', { pythonPath });
+      update({ piperPath: pythonPath });
+
+      setPiperStatus('downloading-model');
+      const lang = settings.language ?? 'fr';
+      setPiperMessage(`Téléchargement du modèle ${lang === 'fr' ? 'français' : 'anglais'}...`);
+      const modelPath = await invoke<string>('download_piper_model', { lang });
+      update({ piperModel: modelPath });
+
+      setPiperStatus('done');
+      setPiperMessage('Piper TTS installé et configuré !');
+    } catch (e: any) {
+      setPiperStatus('error');
+      setPiperMessage(String(e));
+    }
+  };
 
   const handleSave = async () => {
     if (settings) {
@@ -368,26 +396,64 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             <Box>
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>Piper TTS (Synthèse vocale locale)</Typography>
               <Typography variant="caption" color="text.secondary" sx={{ mb: 1.5, display: 'block' }}>
-                Piper est un moteur TTS open-source ultra-rapide. Téléchargez piper.exe et un modèle .onnx depuis github.com/rhasspy/piper
+                Piper est un moteur TTS open-source ultra-rapide. Cliquez sur le bouton pour l'installer automatiquement.
               </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                <TextField
-                  label="Chemin vers piper.exe"
-                  value={settings.piperPath}
-                  onChange={e => update({ piperPath: e.target.value })}
-                  size="small"
-                  fullWidth
-                  placeholder="C:\piper\piper.exe"
-                />
-                <TextField
-                  label="Chemin vers le modèle .onnx"
-                  value={settings.piperModel}
-                  onChange={e => update({ piperModel: e.target.value })}
-                  size="small"
-                  fullWidth
-                  placeholder="C:\piper\fr_FR-siwis-medium.onnx"
-                />
-              </Box>
+              {settings.piperPath && settings.piperModel ? (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                  <Alert severity="success" sx={{ borderRadius: 2, py: 0.25 }}>
+                    Piper configuré — Python : <strong>{settings.piperPath}</strong>
+                  </Alert>
+                  <TextField
+                    label="Chemin vers le modèle .onnx"
+                    value={settings.piperModel}
+                    onChange={e => update({ piperModel: e.target.value })}
+                    size="small"
+                    fullWidth
+                  />
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    color="error"
+                    onClick={() => { update({ piperPath: '', piperModel: '' }); setPiperStatus('idle'); setPiperMessage(''); }}
+                  >
+                    Réinitialiser la configuration
+                  </Button>
+                </Box>
+              ) : (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, alignItems: 'flex-start' }}>
+                  <Button
+                    variant="contained"
+                    onClick={handleInstallPiper}
+                    disabled={piperStatus === 'detecting' || piperStatus === 'installing' || piperStatus === 'downloading-model'}
+                    startIcon={piperStatus !== 'idle' && piperStatus !== 'done' && piperStatus !== 'error' ? <CircularProgress size={16} color="inherit" /> : undefined}
+                  >
+                    {piperStatus === 'idle' ? 'Installer Piper TTS automatiquement' :
+                     piperStatus === 'done' ? '✓ Installé' :
+                     piperStatus === 'error' ? 'Réessayer' :
+                     'Installation en cours...'}
+                  </Button>
+                  {piperMessage && (
+                    <Alert severity={piperStatus === 'error' ? 'error' : piperStatus === 'done' ? 'success' : 'info'} sx={{ borderRadius: 2, py: 0.25, width: '100%' }}>
+                      {piperMessage}
+                    </Alert>
+                  )}
+                </Box>
+              )}
+            </Box>
+            <Divider />
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.1em' }}>Freesound</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 1.5, display: 'block' }}>
+                Clé API pour rechercher et importer des sons depuis freesound.org. Obtenez-la sur freesound.org/apiv2/apply
+              </Typography>
+              <TextField
+                label="Clé API Freesound"
+                value={settings.freesoundApiKey}
+                onChange={e => update({ freesoundApiKey: e.target.value })}
+                size="small"
+                fullWidth
+                placeholder="Votre clé API Freesound"
+              />
             </Box>
           </>
         )}

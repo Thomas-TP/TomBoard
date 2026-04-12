@@ -193,6 +193,13 @@ pub fn get_sounds_dir() -> PathBuf {
     dir
 }
 
+pub fn get_app_dir() -> PathBuf {
+    let base = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
+    let dir = base.join("TomBoard");
+    fs::create_dir_all(&dir).ok();
+    dir
+}
+
 pub fn load_data() -> AppData {
     let path = get_data_path();
     if path.exists() {

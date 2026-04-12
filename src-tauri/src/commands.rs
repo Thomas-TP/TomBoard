@@ -454,8 +454,130 @@ $synth.Dispose()
 
 #[tauri::command]
 pub fn check_piper(piper_path: String) -> Result<bool, String> {
-    let path = std::path::Path::new(&piper_path);
-    Ok(path.exists() && path.is_file())
+    // piper_path is now the path to the Python executable
+    let output = Command::new(&piper_path)
+        .args(["-m", "piper", "--help"])
+        .creation_flags(CREATE_NO_WINDOW)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status();
+    Ok(output.map(|s| s.success()).unwrap_or(false))
+}
+
+#[tauri::command]
+pub fn detect_python() -> Result<String, String> {
+    // Try common Python executable names
+    for name in &["python", "python3", "py"] {
+        if let Ok(output) = Command::new(name)
+            .args(["--version"])
+            .creation_flags(CREATE_NO_WINDOW)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .output()
+        {
+            if output.status.success() {
+                return Ok(name.to_string());
+            }
+        }
+    }
+    Err("Python introuvable. Installez Python depuis python.org".to_string())
+}
+
+#[tauri::command]
+pub fn install_piper(python_path: String) -> Result<String, String> {
+    let output = Command::new(&python_path)
+        .args(["-m", "pip", "install", "piper-tts"])
+        .creation_flags(CREATE_NO_WINDOW)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .output()
+        .map_err(|e| format!("Erreur pip: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Installation échouée: {}", stderr.trim()));
+    }
+
+    // Verify install
+    let check = Command::new(&python_path)
+        .args(["-m", "piper", "--help"])
+        .creation_flags(CREATE_NO_WINDOW)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map_err(|e| format!("Vérification échouée: {}", e))?;
+
+    if check.success() {
+        Ok(python_path)
+    } else {
+        Err("piper-tts installé mais non fonctionnel.".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn download_piper_model(lang: String) -> Result<String, String> {
+    let models_dir = storage::get_app_dir().join("piper_models");
+    fs::create_dir_all(&models_dir).map_err(|e| format!("Erreur dossier: {}", e))?;
+
+    let (model_name, url) = match lang.as_str() {
+        "en" => (
+            "en_US-lessac-medium.onnx",
+            "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx",
+        ),
+        _ => (
+            "fr_FR-siwis-medium.onnx",
+            "https://huggingface.co/rhasspy/piper-voices/resolve/main/fr/fr_FR/siwis/medium/fr_FR-siwis-medium.onnx",
+        ),
+    };
+
+    let model_path = models_dir.join(model_name);
+    if model_path.exists() {
+        return Ok(model_path.to_string_lossy().to_string());
+    }
+
+    // Download model
+    let output = Command::new("powershell")
+        .args([
+            "-NoProfile", "-Command",
+            &format!(
+                "Invoke-WebRequest -Uri '{}' -OutFile '{}'",
+                url,
+                model_path.to_string_lossy()
+            ),
+        ])
+        .creation_flags(CREATE_NO_WINDOW)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .output()
+        .map_err(|e| format!("Téléchargement échoué: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Téléchargement échoué: {}", stderr.trim()));
+    }
+
+    // Download the JSON config too
+    let json_url = format!("{}.json", url);
+    let json_path = models_dir.join(format!("{}.json", model_name));
+    let _ = Command::new("powershell")
+        .args([
+            "-NoProfile", "-Command",
+            &format!(
+                "Invoke-WebRequest -Uri '{}' -OutFile '{}'",
+                json_url,
+                json_path.to_string_lossy()
+            ),
+        ])
+        .creation_flags(CREATE_NO_WINDOW)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .output();
+
+    if model_path.exists() {
+        Ok(model_path.to_string_lossy().to_string())
+    } else {
+        Err("Le modèle n'a pas été téléchargé.".to_string())
+    }
 }
 
 #[tauri::command]
@@ -465,9 +587,6 @@ pub async fn synthesize_piper(
     model_path: String,
     data: State<'_, DataState>,
 ) -> Result<Sound, String> {
-    if !std::path::Path::new(&piper_path).exists() {
-        return Err("piper.exe introuvable. Configurez le chemin dans les paramètres.".to_string());
-    }
     if !std::path::Path::new(&model_path).exists() {
         return Err("Modèle Piper introuvable. Configurez le chemin dans les paramètres.".to_string());
     }
@@ -477,9 +596,9 @@ pub async fn synthesize_piper(
     let dest_path = sounds_dir.join(format!("{}.wav", sound_id));
     let dest_str = dest_path.to_string_lossy().to_string();
 
-    // Piper reads from stdin and writes WAV to --output_file
+    // Use python -m piper instead of piper.exe
     let mut child = Command::new(&piper_path)
-        .args(["--model", &model_path, "--output_file", &dest_str])
+        .args(["-m", "piper", "--model", &model_path, "--output_file", &dest_str])
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::piped())

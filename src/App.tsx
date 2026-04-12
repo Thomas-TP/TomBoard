@@ -72,7 +72,6 @@ function App() {
 
   // DnD state
   const [dragActiveId, setDragActiveId] = useState<string | null>(null);
-  const [dragOverCategory, setDragOverCategory] = useState<string | null>(null);
   const dndSensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } })
   );
@@ -81,19 +80,13 @@ function App() {
     setDragActiveId(event.active.id as string);
   };
 
-  const handleDragOver = (event: DragOverEvent) => {
-    const overId = event.over?.id as string | undefined;
-    if (overId?.startsWith('category-drop-')) {
-      setDragOverCategory(overId.replace('category-drop-', ''));
-    } else {
-      setDragOverCategory(null);
-    }
+  const handleDragOver = (_event: DragOverEvent) => {
+    // reserved for future category drop targets
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setDragActiveId(null);
-    setDragOverCategory(null);
     if (!over) return;
 
     const overId = over.id as string;
@@ -457,7 +450,7 @@ function App() {
               </Box>
             </Box>
           )}
-          <Toolbar dragOverCategory={dragOverCategory} isDragging={!!dragActiveId} />
+          <Toolbar />
           <SortableContext items={sounds.map(s => s.id)} strategy={rectSortingStrategy}>
           <AnimatePresence mode="wait">
           {viewMode === 'grid' || viewMode === 'compact' ? (
