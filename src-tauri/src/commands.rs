@@ -297,8 +297,15 @@ pub struct TtsVoiceInfo {
 }
 
 fn synthesize_onecore(voice_name: &str, text: &str, rate: i32, output_path: &str) -> Result<(), String> {
+    use std::future::IntoFuture;
     use windows::Media::SpeechSynthesis::SpeechSynthesizer;
     use windows::Storage::Streams::DataReader;
+
+    // windows-rs 0.62 dropped the blocking `IAsyncOperation::get()` in favor of
+    // `IntoFuture`/`.await`; this function is always invoked from inside
+    // `tokio::task::spawn_blocking`, so a nested `block_on` here is safe (it runs
+    // on a dedicated blocking-pool thread, not an async worker thread).
+    let rt = tokio::runtime::Handle::current();
 
     let synth = SpeechSynthesizer::new().map_err(|e| format!("Failed to create synthesizer: {}", e))?;
 
@@ -319,19 +326,23 @@ fn synthesize_onecore(voice_name: &str, text: &str, rate: i32, output_path: &str
 
     // Synthesize
     let hstring = windows::core::HSTRING::from(text);
-    let stream = synth.SynthesizeTextToStreamAsync(&hstring)
-        .map_err(|e| format!("Synthesis start failed: {}", e))?
-        .get()
-        .map_err(|e| format!("Synthesis failed: {}", e))?;
+    let stream = rt.block_on(
+        synth.SynthesizeTextToStreamAsync(&hstring)
+            .map_err(|e| format!("Synthesis start failed: {}", e))?
+            .into_future(),
+    )
+    .map_err(|e| format!("Synthesis failed: {}", e))?;
 
     // Read stream to bytes
     let size = stream.Size().map_err(|e| e.to_string())? as u32;
     let input_stream = stream.GetInputStreamAt(0).map_err(|e| e.to_string())?;
     let reader = DataReader::CreateDataReader(&input_stream).map_err(|e| e.to_string())?;
-    reader.LoadAsync(size)
-        .map_err(|e| e.to_string())?
-        .get()
-        .map_err(|e| e.to_string())?;
+    rt.block_on(
+        reader.LoadAsync(size)
+            .map_err(|e| e.to_string())?
+            .into_future(),
+    )
+    .map_err(|e| e.to_string())?;
 
     let mut bytes = vec![0u8; size as usize];
     reader.ReadBytes(&mut bytes).map_err(|e| e.to_string())?;
