@@ -1,5 +1,5 @@
 import { Box, Typography } from "@mui/material";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "motion/react";
 import SoundCard from "./SoundCard";
 import { useFilteredSounds } from "../../stores/appStore";
 import { MusicOff } from "@mui/icons-material";
@@ -10,16 +10,10 @@ import { useI18n } from "../../i18n/I18nProvider";
 interface SoundGridProps {
   onContextMenu: (sound: Sound, position: { top: number; left: number }) => void;
   onEdit: (sound: Sound) => void;
-  dragActiveId?: string | null;
   compact?: boolean;
 }
 
-export default function SoundGrid({
-  onContextMenu,
-  onEdit,
-  dragActiveId,
-  compact,
-}: SoundGridProps) {
+export default function SoundGrid({ onContextMenu, onEdit, compact }: SoundGridProps) {
   const sounds = useFilteredSounds();
   const { visible, sentinelRef, hasMore } = useLazyBatch(sounds);
   const { t } = useI18n();
@@ -83,7 +77,6 @@ export default function SoundGrid({
             sound={sound}
             onContextMenu={onContextMenu}
             onEdit={onEdit}
-            isDragActive={dragActiveId === sound.id}
             compact={compact}
           />
         ))}

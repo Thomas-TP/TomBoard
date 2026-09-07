@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from "react";
+import { createRoot } from "react-dom/client";
 import {
   Card,
   CardActionArea,
@@ -8,32 +10,36 @@ import {
   Slider,
 } from "@mui/material";
 import { Stop, Star, StarBorder, Delete, Repeat } from "@mui/icons-material";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { Sound } from "../../types";
 import { useAppStore } from "../../stores/appStore";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import {
+  draggable,
+  dropTargetForElements,
+} from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
+import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
+import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/set-custom-native-drag-preview";
+import { pointerOutsideOfPreview } from "@atlaskit/pragmatic-drag-and-drop/utils/pointer-outside-of-preview";
+import {
+  attachClosestEdge,
+  extractClosestEdge,
+  type Edge,
+} from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
+import { DropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/box";
 import { useI18n } from "../../i18n/I18nProvider";
+
+export const SOUND_CARD_DRAG_TYPE = "sound-card";
 
 interface SoundCardProps {
   sound: Sound;
   onContextMenu: (sound: Sound, position: { top: number; left: number }) => void;
   onEdit: (sound: Sound) => void;
-  isDragActive?: boolean;
-  isOverlay?: boolean;
   compact?: boolean;
 }
 
 const MotionCard = motion.create(Card);
 
-export default function SoundCard({
-  sound,
-  onContextMenu,
-  onEdit,
-  isDragActive,
-  isOverlay,
-  compact,
-}: SoundCardProps) {
+export default function SoundCard({ sound, onContextMenu, onEdit, compact }: SoundCardProps) {
   const playSound = useAppStore((s) => s.playSound);
   const toggleFavorite = useAppStore((s) => s.toggleFavorite);
   const deleteSound = useAppStore((s) => s.deleteSound);
@@ -42,21 +48,64 @@ export default function SoundCard({
   const playingIds = useAppStore((s) => s.playingIds);
   const { t } = useI18n();
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition: sortTransition,
-    isDragging,
-  } = useSortable({ id: sound.id, disabled: isOverlay });
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [closestEdge, setClosestEdge] = useState<Edge | null>(null);
 
-  const sortStyle = {
-    transform: CSS.Transform.toString(transform),
-    transition: sortTransition,
-    opacity: isDragActive ? 0.3 : 1,
-    zIndex: isDragging ? 100 : "auto",
-  };
+  useEffect(() => {
+    const element = cardRef.current;
+    if (!element) return undefined;
+    return combine(
+      draggable({
+        element,
+        getInitialData: () => ({ type: SOUND_CARD_DRAG_TYPE, soundId: sound.id }),
+        onGenerateDragPreview({ nativeSetDragImage }) {
+          setCustomNativeDragPreview({
+            nativeSetDragImage,
+            getOffset: pointerOutsideOfPreview({ x: "16px", y: "16px" }),
+            render({ container }) {
+              const root = createRoot(container);
+              root.render(
+                <div
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: "10px",
+                    background: "#7C5CFC",
+                    color: "#fff",
+                    fontWeight: 600,
+                    fontSize: "0.8rem",
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+                    whiteSpace: "nowrap",
+                    maxWidth: 200,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {sound.name}
+                </div>,
+              );
+              return () => root.unmount();
+            },
+          });
+        },
+        onDragStart: () => setIsDragging(true),
+        onDrop: () => setIsDragging(false),
+      }),
+      dropTargetForElements({
+        element,
+        canDrop: ({ source }) =>
+          source.data.type === SOUND_CARD_DRAG_TYPE && source.data.soundId !== sound.id,
+        getData: ({ input, element }) =>
+          attachClosestEdge(
+            { type: SOUND_CARD_DRAG_TYPE, soundId: sound.id },
+            { input, element, allowedEdges: ["left", "right", "top", "bottom"] },
+          ),
+        onDrag: ({ self }) => setClosestEdge(extractClosestEdge(self.data)),
+        onDragLeave: () => setClosestEdge(null),
+        onDrop: () => setClosestEdge(null),
+      }),
+    );
+  }, [sound.id, sound.name]);
 
   const isPlaying = playingIds.includes(sound.id);
 
@@ -67,27 +116,14 @@ export default function SoundCard({
   };
 
   return (
-    <div
-      ref={isOverlay ? undefined : setNodeRef}
-      style={isOverlay ? undefined : (sortStyle as any)}
-      {...(isOverlay ? {} : attributes)}
-      {...(isOverlay ? {} : listeners)}
-    >
+    <div ref={cardRef} style={{ position: "relative", opacity: isDragging ? 0.4 : 1 }}>
       <MotionCard
-        layout={!isDragActive && !isOverlay}
-        initial={isOverlay ? false : { opacity: 0, scale: 0.92, y: 12 }}
-        animate={
-          isOverlay
-            ? { scale: 1.05, boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }
-            : { opacity: 1, scale: 1, y: 0 }
-        }
+        layout={!isDragging}
+        initial={{ opacity: 0, scale: 0.92, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.85, y: -12 }}
-        whileHover={
-          isDragActive || isOverlay
-            ? undefined
-            : { scale: 1.04, y: -4, transition: { duration: 0.15 } }
-        }
-        whileTap={isDragActive || isOverlay ? undefined : { scale: 0.94 }}
+        whileHover={isDragging ? undefined : { scale: 1.04, y: -4, transition: { duration: 0.15 } }}
+        whileTap={isDragging ? undefined : { scale: 0.94 }}
         onContextMenu={(e: React.MouseEvent) => {
           e.preventDefault();
           onContextMenu(sound, { top: e.clientY, left: e.clientX });
@@ -304,6 +340,7 @@ export default function SoundCard({
           </Box>
         )}
       </MotionCard>
+      {closestEdge && <DropIndicator edge={closestEdge} gap="8px" />}
     </div>
   );
 }

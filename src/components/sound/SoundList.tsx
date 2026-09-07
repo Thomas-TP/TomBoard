@@ -10,7 +10,7 @@ import {
   Chip,
 } from "@mui/material";
 import { Stop, Star, StarBorder, Delete, MusicOff } from "@mui/icons-material";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "motion/react";
 import { useAppStore, useFilteredSounds } from "../../stores/appStore";
 import { Sound } from "../../types";
 import { useLazyBatch } from "../../hooks/useLazyBatch";

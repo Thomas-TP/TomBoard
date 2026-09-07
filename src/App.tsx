@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { ThemeProvider, CssBaseline, Box, Snackbar, Alert, Button } from "@mui/material";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "motion/react";
 import TomBoardLogo from "./components/TomBoardLogo";
 import Titlebar from "./components/layout/Titlebar";
 import Sidebar from "./components/layout/Sidebar";
@@ -26,18 +26,8 @@ import { useAppStore, useFilteredSounds } from "./stores/appStore";
 import { useHotkeyManager } from "./hooks/useHotkeyManager";
 import { useI18n } from "./i18n/I18nProvider";
 import { Sound } from "./types";
-import {
-  DndContext,
-  MouseSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-  DragStartEvent,
-  DragOverEvent,
-  DragOverlay,
-  pointerWithin,
-} from "@dnd-kit/core";
-import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
+import { monitorForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
+import { SOUND_CARD_DRAG_TYPE } from "./components/sound/SoundCard";
 
 function App() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -66,50 +56,36 @@ function App() {
   const viewMode = useAppStore((s) => s.viewMode);
   const loading = useAppStore((s) => s.loading);
   const reorderSounds = useAppStore((s) => s.reorderSounds);
-  const updateSound = useAppStore((s) => s.updateSound);
   const sounds = useFilteredSounds();
 
-  // DnD state
-  const [dragActiveId, setDragActiveId] = useState<string | null>(null);
-  const dndSensors = useSensors(useSensor(MouseSensor, { activationConstraint: { distance: 5 } }));
+  // DnD: reorder sounds by dropping one sound-card onto another (see SoundCard.tsx
+  // for the draggable/dropTarget wiring; this just handles the resulting reorder).
+  // `sounds` is a freshly derived array every render, so it's read from a ref
+  // inside the drop handler instead of being a dependency (which would tear down
+  // and resubscribe the monitor on every render).
+  const soundsRef = useRef(sounds);
+  soundsRef.current = sounds;
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setDragActiveId(event.active.id as string);
-  };
-
-  const handleDragOver = (_event: DragOverEvent) => {
-    // reserved for future category drop targets
-  };
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    setDragActiveId(null);
-    if (!over) return;
-
-    const overId = over.id as string;
-
-    // Dropped onto a category chip
-    if (overId.startsWith("category-drop-")) {
-      const categoryId = overId.replace("category-drop-", "");
-      const sound = sounds.find((s) => s.id === active.id);
-      if (sound && sound.category !== categoryId) {
-        await updateSound({ ...sound, category: categoryId });
-      }
-      return;
-    }
-
-    // Normal reorder within grid
-    if (active.id === over.id) return;
-    const oldIndex = sounds.findIndex((s) => s.id === active.id);
-    const newIndex = sounds.findIndex((s) => s.id === overId);
-    if (oldIndex === -1 || newIndex === -1) return;
-    const newOrder = [...sounds];
-    const [moved] = newOrder.splice(oldIndex, 1);
-    newOrder.splice(newIndex, 0, moved);
-    reorderSounds(newOrder.map((s) => s.id));
-  };
-
-  const dragActiveSound = dragActiveId ? sounds.find((s) => s.id === dragActiveId) : null;
+  useEffect(() => {
+    return monitorForElements({
+      canMonitor: ({ source }) => source.data.type === SOUND_CARD_DRAG_TYPE,
+      onDrop({ source, location }) {
+        const target = location.current.dropTargets[0];
+        if (!target) return;
+        const draggedId = source.data.soundId as string;
+        const targetId = target.data.soundId as string;
+        if (draggedId === targetId) return;
+        const currentSounds = soundsRef.current;
+        const oldIndex = currentSounds.findIndex((s) => s.id === draggedId);
+        const newIndex = currentSounds.findIndex((s) => s.id === targetId);
+        if (oldIndex === -1 || newIndex === -1) return;
+        const newOrder = [...currentSounds];
+        const [moved] = newOrder.splice(oldIndex, 1);
+        newOrder.splice(newIndex, 0, moved);
+        reorderSounds(newOrder.map((s) => s.id));
+      },
+    });
+  }, [reorderSounds]);
 
   // Global hotkey manager
   useHotkeyManager();
@@ -435,128 +411,95 @@ function App() {
           onVoiceChangerClick={() => setVoiceChangerOpen(true)}
           onChangelogClick={() => setChangelogOpen(true)}
         />
-        <DndContext
-          sensors={dndSensors}
-          collisionDetection={pointerWithin}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
-            <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar} />
-            <Box
-              component="main"
-              role="main"
-              id="main-content"
-              tabIndex={-1}
-              onDragEnter={handleFileDragEnter}
-              onDragLeave={handleFileDragLeave}
-              onDragOver={handleFileDragOver}
-              onDrop={handleFileDrop}
-              sx={{
-                flex: 1,
-                overflow: "auto",
-                position: "relative",
-                ...(dropHighlight && {
-                  outline: "3px dashed",
-                  outlineColor: "primary.main",
-                  outlineOffset: "-4px",
-                }),
-              }}
-            >
-              {dropHighlight && (
-                <Box
-                  sx={{
-                    position: "absolute",
-                    inset: 0,
-                    zIndex: 20,
-                    bgcolor: "rgba(103,80,164,0.08)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    pointerEvents: "none",
-                  }}
-                >
-                  <Box
-                    sx={{
-                      border: "2px dashed",
-                      borderColor: "primary.main",
-                      borderRadius: 4,
-                      px: 5,
-                      py: 4,
-                      textAlign: "center",
-                      color: "primary.main",
-                      fontWeight: 700,
-                      fontSize: "1.1rem",
-                    }}
-                  >
-                    {t("dropFilesHere")}
-                  </Box>
-                </Box>
-              )}
-              <Toolbar />
-              <SortableContext items={sounds.map((s) => s.id)} strategy={rectSortingStrategy}>
-                <AnimatePresence mode="wait">
-                  {viewMode === "grid" || viewMode === "compact" ? (
-                    <motion.div
-                      key="grid"
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <ErrorBoundary fallbackTitle={t("soundsDisplayError")}>
-                        <SoundGrid
-                          onContextMenu={(sound, position) => setContextMenu({ sound, position })}
-                          onEdit={setEditSound}
-                          dragActiveId={dragActiveId}
-                          compact={viewMode === "compact"}
-                        />
-                      </ErrorBoundary>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="list"
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <ErrorBoundary fallbackTitle={t("soundsDisplayError")}>
-                        <SoundList
-                          onContextMenu={(sound, position) => setContextMenu({ sound, position })}
-                          onEdit={setEditSound}
-                        />
-                      </ErrorBoundary>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </SortableContext>
-            </Box>
-          </Box>
-          <DragOverlay dropAnimation={null}>
-            {dragActiveSound ? (
+        <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
+          <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar} />
+          <Box
+            component="main"
+            role="main"
+            id="main-content"
+            tabIndex={-1}
+            onDragEnter={handleFileDragEnter}
+            onDragLeave={handleFileDragLeave}
+            onDragOver={handleFileDragOver}
+            onDrop={handleFileDrop}
+            sx={{
+              flex: 1,
+              overflow: "auto",
+              position: "relative",
+              ...(dropHighlight && {
+                outline: "3px dashed",
+                outlineColor: "primary.main",
+                outlineOffset: "-4px",
+              }),
+            }}
+          >
+            {dropHighlight && (
               <Box
                 sx={{
-                  px: 1.5,
-                  py: 1,
-                  borderRadius: "10px",
-                  bgcolor: "primary.main",
-                  color: "primary.contrastText",
-                  fontWeight: 600,
-                  fontSize: "0.8rem",
-                  boxShadow: 4,
-                  whiteSpace: "nowrap",
-                  maxWidth: 200,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
+                  position: "absolute",
+                  inset: 0,
+                  zIndex: 20,
+                  bgcolor: "rgba(103,80,164,0.08)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  pointerEvents: "none",
                 }}
               >
-                {dragActiveSound.name}
+                <Box
+                  sx={{
+                    border: "2px dashed",
+                    borderColor: "primary.main",
+                    borderRadius: 4,
+                    px: 5,
+                    py: 4,
+                    textAlign: "center",
+                    color: "primary.main",
+                    fontWeight: 700,
+                    fontSize: "1.1rem",
+                  }}
+                >
+                  {t("dropFilesHere")}
+                </Box>
               </Box>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+            )}
+            <Toolbar />
+            <AnimatePresence mode="wait">
+              {viewMode === "grid" || viewMode === "compact" ? (
+                <motion.div
+                  key="grid"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ErrorBoundary fallbackTitle={t("soundsDisplayError")}>
+                    <SoundGrid
+                      onContextMenu={(sound, position) => setContextMenu({ sound, position })}
+                      onEdit={setEditSound}
+                      compact={viewMode === "compact"}
+                    />
+                  </ErrorBoundary>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="list"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ErrorBoundary fallbackTitle={t("soundsDisplayError")}>
+                    <SoundList
+                      onContextMenu={(sound, position) => setContextMenu({ sound, position })}
+                      onEdit={setEditSound}
+                    />
+                  </ErrorBoundary>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Box>
+        </Box>
         <StatusBar />
       </Box>
 

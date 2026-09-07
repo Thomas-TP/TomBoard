@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -54,20 +54,19 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 import { save, open as openDialog } from "@tauri-apps/plugin-dialog";
 import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from "@dnd-kit/core";
+  draggable,
+  dropTargetForElements,
+  monitorForElements,
+} from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
+import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import {
-  arrayMove,
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+  attachClosestEdge,
+  extractClosestEdge,
+  type Edge,
+} from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
+import { DropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/box";
+
+const CATEGORY_DRAG_TYPE = "category-item";
 import { useAppStore } from "../../stores/appStore";
 import { AppSettings, Category } from "../../types";
 import { ICON_OPTIONS, renderCategoryIcon } from "../../utils/icons";
@@ -124,19 +123,54 @@ function SortableCategoryItem({
   onDelete: (id: string) => void;
 }) {
   const { t } = useI18n();
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: cat.id });
-  const style = { transform: CSS.Transform.toString(transform), transition };
+  const itemRef = useRef<HTMLLIElement | null>(null);
+  const handleRef = useRef<HTMLButtonElement | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [closestEdge, setClosestEdge] = useState<Edge | null>(null);
+
+  useEffect(() => {
+    const element = itemRef.current;
+    const handle = handleRef.current;
+    if (!element || !handle) return undefined;
+    return combine(
+      draggable({
+        element,
+        dragHandle: handle,
+        getInitialData: () => ({ type: CATEGORY_DRAG_TYPE, categoryId: cat.id }),
+        onDragStart: () => setIsDragging(true),
+        onDrop: () => setIsDragging(false),
+      }),
+      dropTargetForElements({
+        element,
+        canDrop: ({ source }) =>
+          source.data.type === CATEGORY_DRAG_TYPE && source.data.categoryId !== cat.id,
+        getData: ({ input, element }) =>
+          attachClosestEdge(
+            { type: CATEGORY_DRAG_TYPE, categoryId: cat.id },
+            { input, element, allowedEdges: ["top", "bottom"] },
+          ),
+        onDrag: ({ self }) => setClosestEdge(extractClosestEdge(self.data)),
+        onDragLeave: () => setClosestEdge(null),
+        onDrop: () => setClosestEdge(null),
+      }),
+    );
+  }, [cat.id]);
 
   return (
     <ListItem
-      ref={setNodeRef}
-      style={style}
-      sx={{ borderRadius: 2, bgcolor: "action.hover", mb: 0.5, pr: 1 }}
+      ref={itemRef}
+      sx={{
+        position: "relative",
+        borderRadius: 2,
+        bgcolor: "action.hover",
+        mb: 0.5,
+        pr: 1,
+        opacity: isDragging ? 0.4 : 1,
+      }}
     >
       <IconButton
+        ref={handleRef}
         size="small"
-        {...attributes}
-        {...listeners}
         sx={{ cursor: "grab", mr: 0.5, color: "text.secondary" }}
       >
         <DragIndicator sx={{ fontSize: 16 }} />
@@ -170,6 +204,7 @@ function SortableCategoryItem({
           <Delete sx={{ fontSize: 16 }} />
         </IconButton>
       )}
+      {closestEdge && <DropIndicator edge={closestEdge} gap="4px" />}
     </ListItem>
   );
 }
@@ -223,7 +258,6 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   >("idle");
   const [piperMessage, setPiperMessage] = useState<string>("");
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const profile = data?.profiles.find((p) => p.id === data.settings.activeProfileId);
   const categories = profile?.categories ?? [];
   const profiles = data?.profiles ?? [];
@@ -338,14 +372,32 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const handleDeleteCategory = async (id: string) => {
     await deleteCategory(id);
   };
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIndex = categories.findIndex((c) => c.id === active.id);
-    const newIndex = categories.findIndex((c) => c.id === over.id);
-    const reordered = arrayMove(categories, oldIndex, newIndex);
-    await reorderCategories(reordered.map((c) => c.id));
-  };
+  // `categories` is derived fresh every render, so it's read from a ref inside
+  // the drop handler instead of being a dependency (which would tear down and
+  // resubscribe the monitor on every render).
+  const categoriesRef = useRef(categories);
+  categoriesRef.current = categories;
+
+  useEffect(() => {
+    return monitorForElements({
+      canMonitor: ({ source }) => source.data.type === CATEGORY_DRAG_TYPE,
+      onDrop({ source, location }) {
+        const target = location.current.dropTargets[0];
+        if (!target) return;
+        const draggedId = source.data.categoryId as string;
+        const targetId = target.data.categoryId as string;
+        if (draggedId === targetId) return;
+        const currentCategories = categoriesRef.current;
+        const oldIndex = currentCategories.findIndex((c) => c.id === draggedId);
+        const newIndex = currentCategories.findIndex((c) => c.id === targetId);
+        if (oldIndex === -1 || newIndex === -1) return;
+        const reordered = [...currentCategories];
+        const [moved] = reordered.splice(oldIndex, 1);
+        reordered.splice(newIndex, 0, moved);
+        reorderCategories(reordered.map((c) => c.id));
+      },
+    });
+  }, [reorderCategories]);
 
   const handleAddProfile = async () => {
     const name = newProfileName.trim();
@@ -1197,29 +1249,16 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                   {t("activeProfile")} <strong>{profile.name}</strong>
                 </Alert>
               )}
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={categories.map((c) => c.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <List dense sx={{ mb: 1 }}>
-                    {categories.map((cat) => (
-                      <SortableCategoryItem
-                        key={cat.id}
-                        cat={cat}
-                        soundCount={
-                          profile?.sounds.filter((s) => s.category === cat.id).length ?? 0
-                        }
-                        onDelete={handleDeleteCategory}
-                      />
-                    ))}
-                  </List>
-                </SortableContext>
-              </DndContext>
+              <List dense sx={{ mb: 1 }}>
+                {categories.map((cat) => (
+                  <SortableCategoryItem
+                    key={cat.id}
+                    cat={cat}
+                    soundCount={profile?.sounds.filter((s) => s.category === cat.id).length ?? 0}
+                    onDelete={handleDeleteCategory}
+                  />
+                ))}
+              </List>
               <Divider />
               <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                 {t("newCategory")}
