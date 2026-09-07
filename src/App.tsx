@@ -64,7 +64,9 @@ function App() {
   // inside the drop handler instead of being a dependency (which would tear down
   // and resubscribe the monitor on every render).
   const soundsRef = useRef(sounds);
-  soundsRef.current = sounds;
+  useEffect(() => {
+    soundsRef.current = sounds;
+  });
 
   useEffect(() => {
     return monitorForElements({

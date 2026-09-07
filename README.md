@@ -102,20 +102,20 @@ L'installateur vous guidera à travers les options :
 ### Compiler depuis les sources
 
 ```bash
-# Prérequis : Node.js 18+, Rust, Tauri CLI v2
+# Prérequis : Bun, Rust, Tauri CLI v2
 
 # Cloner le repo
 git clone https://github.com/Thomas-TP/TomBoard.git
 cd TomBoard
 
 # Installer les dépendances
-npm install
+bun install
 
 # Lancer en mode développement
-npm run tauri dev
+bun run tauri dev
 
 # Compiler l'installateur
-npm run tauri build
+bun run tauri build
 ```
 
 ---
@@ -125,14 +125,14 @@ npm run tauri build
 | Composant        | Technologie                                       |
 | ---------------- | ------------------------------------------------- |
 | **Framework**    | [Tauri v2](https://v2.tauri.app) (Rust + WebView) |
-| **Frontend**     | React 19, TypeScript 5, Vite 7                    |
+| **Frontend**     | React 19, TypeScript 7, Vite 8                    |
 | **UI**           | Material UI 9 (MUI)                               |
 | **Audio**        | rodio + cpal (natif Rust)                         |
 | **Voix**         | Windows Speech Synthesis API                      |
 | **Bruit IA**     | nnnoiseless (RNNoise Rust)                        |
 | **État**         | Zustand 5                                         |
-| **Animations**   | Framer Motion 12                                  |
-| **Drag & Drop**  | dnd-kit                                           |
+| **Animations**   | Motion 13                                         |
+| **Drag & Drop**  | Pragmatic drag and drop                           |
 | **Installateur** | Velopack                                          |
 
 ---

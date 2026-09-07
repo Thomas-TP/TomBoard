@@ -376,7 +376,9 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   // the drop handler instead of being a dependency (which would tear down and
   // resubscribe the monitor on every render).
   const categoriesRef = useRef(categories);
-  categoriesRef.current = categories;
+  useEffect(() => {
+    categoriesRef.current = categories;
+  });
 
   useEffect(() => {
     return monitorForElements({
