@@ -179,23 +179,29 @@ impl Default for AppData {
     }
 }
 
+/// `%LOCALAPPDATA%` (Windows-only app, so a direct env lookup replaces the
+/// `dirs` crate without needing to thread a Tauri `AppHandle` through every
+/// caller of these free functions).
+pub fn local_app_data() -> PathBuf {
+    std::env::var_os("LOCALAPPDATA")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."))
+}
+
 fn get_data_path() -> PathBuf {
-    let base = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
-    let dir = base.join("TomBoard");
+    let dir = local_app_data().join("TomBoard");
     fs::create_dir_all(&dir).ok();
     dir.join("data.json")
 }
 
 pub fn get_sounds_dir() -> PathBuf {
-    let base = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
-    let dir = base.join("TomBoard").join("sounds");
+    let dir = local_app_data().join("TomBoard").join("sounds");
     fs::create_dir_all(&dir).ok();
     dir
 }
 
 pub fn get_app_dir() -> PathBuf {
-    let base = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
-    let dir = base.join("TomBoard");
+    let dir = local_app_data().join("TomBoard");
     fs::create_dir_all(&dir).ok();
     dir
 }

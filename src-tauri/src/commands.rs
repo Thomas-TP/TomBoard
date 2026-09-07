@@ -1479,8 +1479,7 @@ pub fn stop_mic_passthrough(state: State<MicPassthroughState>) -> Result<(), Str
 
 #[tauri::command]
 pub fn get_app_data_dir() -> Result<String, String> {
-    let base = dirs::data_local_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
-    let dir = base.join("TomBoard");
+    let dir = storage::local_app_data().join("TomBoard");
     Ok(dir.to_string_lossy().to_string())
 }
 

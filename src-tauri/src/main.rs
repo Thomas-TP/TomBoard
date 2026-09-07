@@ -12,8 +12,9 @@ fn main() {
             .join("crash.log");
         let _ = std::fs::write(&log_path, &msg);
         // Also try user desktop
-        if let Some(home) = dirs::desktop_dir() {
-            let _ = std::fs::write(home.join("tomboard_crash.log"), &msg);
+        if let Some(profile) = std::env::var_os("USERPROFILE") {
+            let desktop = std::path::PathBuf::from(profile).join("Desktop");
+            let _ = std::fs::write(desktop.join("tomboard_crash.log"), &msg);
         }
     }));
 
