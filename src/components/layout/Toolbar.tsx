@@ -6,7 +6,7 @@ import {
   ToggleButton,
   Menu,
   MenuItem,
-} from '@mui/material';
+} from "@mui/material";
 import {
   GridView,
   ViewList,
@@ -16,19 +16,19 @@ import {
   Replay,
   Schedule,
   TrendingUp,
-} from '@mui/icons-material';
-import { useAppStore, SoundFilter, SoundSort } from '../../stores/appStore';
-import { useI18n } from '../../i18n/I18nProvider';
-import { useState } from 'react';
-import React from 'react';
+} from "@mui/icons-material";
+import { useAppStore, SoundFilter, SoundSort } from "../../stores/appStore";
+import { useI18n } from "../../i18n/I18nProvider";
+import { useState } from "react";
+import React from "react";
 
 export default function Toolbar() {
-  const viewMode = useAppStore(s => s.viewMode);
-  const setViewMode = useAppStore(s => s.setViewMode);
-  const activeFilter = useAppStore(s => s.activeFilter);
-  const setActiveFilter = useAppStore(s => s.setActiveFilter);
-  const activeSort = useAppStore(s => s.activeSort);
-  const setActiveSort = useAppStore(s => s.setActiveSort);
+  const viewMode = useAppStore((s) => s.viewMode);
+  const setViewMode = useAppStore((s) => s.setViewMode);
+  const activeFilter = useAppStore((s) => s.activeFilter);
+  const setActiveFilter = useAppStore((s) => s.setActiveFilter);
+  const activeSort = useAppStore((s) => s.activeSort);
+  const setActiveSort = useAppStore((s) => s.setActiveSort);
 
   const [sortAnchor, setSortAnchor] = useState<HTMLElement | null>(null);
   const { t } = useI18n();
@@ -36,8 +36,8 @@ export default function Toolbar() {
   return (
     <Box
       sx={{
-        display: 'flex',
-        flexDirection: 'column',
+        display: "flex",
+        flexDirection: "column",
         gap: 1,
         px: 2,
         pt: 1.5,
@@ -46,26 +46,45 @@ export default function Toolbar() {
       }}
     >
       {/* Filters, Sort, View toggle */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
         {/* Filter chips */}
-        <Box sx={{ display: 'flex', gap: 0.25, flex: 1 }}>
-          {([['favorites', '⭐', Star], ['looping', '🔁', Replay], ['recent', '🕐', Schedule], ['most-played', '🔥', TrendingUp]] as [SoundFilter, string, React.ComponentType<any>][]).map(([filter, , FilterIcon]) => {
+        <Box sx={{ display: "flex", gap: 0.25, flex: 1 }}>
+          {(
+            [
+              ["favorites", "⭐", Star],
+              ["looping", "🔁", Replay],
+              ["recent", "🕐", Schedule],
+              ["most-played", "🔥", TrendingUp],
+            ] as [SoundFilter, string, React.ComponentType<any>][]
+          ).map(([filter, , FilterIcon]) => {
             const isActive = activeFilter === filter;
             return (
-              <Tooltip key={filter} title={filter === 'favorites' ? t('favorites') : filter === 'looping' ? t('looping') : filter === 'recent' ? t('recent') : t('mostPlayed')} arrow>
+              <Tooltip
+                key={filter}
+                title={
+                  filter === "favorites"
+                    ? t("favorites")
+                    : filter === "looping"
+                      ? t("looping")
+                      : filter === "recent"
+                        ? t("recent")
+                        : t("mostPlayed")
+                }
+                arrow
+              >
                 <IconButton
                   size="small"
-                  onClick={() => setActiveFilter(isActive ? 'all' : filter)}
+                  onClick={() => setActiveFilter(isActive ? "all" : filter)}
                   sx={{
                     width: 28,
                     height: 28,
-                    borderRadius: '8px',
-                    fontSize: '0.85rem',
-                    bgcolor: isActive ? 'rgba(124, 92, 252, 0.15)' : 'transparent',
-                    color: isActive ? 'primary.main' : 'text.secondary',
-                    border: '1px solid',
-                    borderColor: isActive ? 'primary.main' : 'transparent',
-                    '&:hover': { bgcolor: isActive ? 'rgba(124, 92, 252, 0.2)' : 'action.hover' },
+                    borderRadius: "8px",
+                    fontSize: "0.85rem",
+                    bgcolor: isActive ? "rgba(124, 92, 252, 0.15)" : "transparent",
+                    color: isActive ? "primary.main" : "text.secondary",
+                    border: "1px solid",
+                    borderColor: isActive ? "primary.main" : "transparent",
+                    "&:hover": { bgcolor: isActive ? "rgba(124, 92, 252, 0.2)" : "action.hover" },
                   }}
                 >
                   <FilterIcon sx={{ fontSize: 15 }} />
@@ -76,27 +95,37 @@ export default function Toolbar() {
         </Box>
 
         {/* Sort */}
-        <Tooltip title={t('sort')} arrow>
+        <Tooltip title={t("sort")} arrow>
           <IconButton
             size="small"
-            onClick={e => setSortAnchor(e.currentTarget)}
+            onClick={(e) => setSortAnchor(e.currentTarget)}
             sx={{
-              color: activeSort !== 'order' ? 'primary.main' : 'text.secondary',
+              color: activeSort !== "order" ? "primary.main" : "text.secondary",
               width: 28,
               height: 28,
-              borderRadius: '8px',
+              borderRadius: "8px",
             }}
           >
             <Sort sx={{ fontSize: 16 }} />
           </IconButton>
         </Tooltip>
         <Menu anchorEl={sortAnchor} open={!!sortAnchor} onClose={() => setSortAnchor(null)}>
-          {([['order', t('sortByOrder')], ['name', t('sortByName')], ['recent', t('sortByRecent')], ['most-played', t('sortByMostPlayed')]] as [SoundSort, string][]).map(([sort, label]) => (
+          {(
+            [
+              ["order", t("sortByOrder")],
+              ["name", t("sortByName")],
+              ["recent", t("sortByRecent")],
+              ["most-played", t("sortByMostPlayed")],
+            ] as [SoundSort, string][]
+          ).map(([sort, label]) => (
             <MenuItem
               key={sort}
               selected={activeSort === sort}
-              onClick={() => { setActiveSort(sort); setSortAnchor(null); }}
-              sx={{ fontSize: '0.82rem', borderRadius: '8px', mx: 0.5 }}
+              onClick={() => {
+                setActiveSort(sort);
+                setSortAnchor(null);
+              }}
+              sx={{ fontSize: "0.82rem", borderRadius: "8px", mx: 0.5 }}
             >
               {label}
             </MenuItem>
@@ -109,35 +138,36 @@ export default function Toolbar() {
           exclusive
           onChange={(_, v) => v && setViewMode(v)}
           size="small"
-          aria-label={t('gridView')}
+          aria-label={t("gridView")}
           sx={{
-            bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)',
-            borderRadius: '8px',
-            border: '1px solid',
-            borderColor: 'divider',
-            p: '2px',
+            bgcolor: (theme) =>
+              theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.04)",
+            borderRadius: "8px",
+            border: "1px solid",
+            borderColor: "divider",
+            p: "2px",
             flexShrink: 0,
-            '& .MuiToggleButton-root': {
-              border: 'none',
-              borderRadius: '6px !important',
+            "& .MuiToggleButton-root": {
+              border: "none",
+              borderRadius: "6px !important",
               px: 0.75,
               py: 0.3,
-              color: 'text.secondary',
-              '&.Mui-selected': {
-                bgcolor: 'primary.main',
-                color: 'primary.contrastText',
-                '&:hover': { bgcolor: 'primary.dark' },
+              color: "text.secondary",
+              "&.Mui-selected": {
+                bgcolor: "primary.main",
+                color: "primary.contrastText",
+                "&:hover": { bgcolor: "primary.dark" },
               },
             },
           }}
         >
-          <ToggleButton value="grid" aria-label={t('gridView')}>
+          <ToggleButton value="grid" aria-label={t("gridView")}>
             <GridView sx={{ fontSize: 15 }} />
           </ToggleButton>
-          <ToggleButton value="list" aria-label={t('listView')}>
+          <ToggleButton value="list" aria-label={t("listView")}>
             <ViewList sx={{ fontSize: 15 }} />
           </ToggleButton>
-          <ToggleButton value="compact" aria-label={t('compactView')}>
+          <ToggleButton value="compact" aria-label={t("compactView")}>
             <DensitySmall sx={{ fontSize: 15 }} />
           </ToggleButton>
         </ToggleButtonGroup>

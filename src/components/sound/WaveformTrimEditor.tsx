@@ -1,9 +1,9 @@
-import { useRef, useEffect, useCallback, useState } from 'react';
-import { Box, Typography, Button, CircularProgress } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
-import { ContentCut } from '@mui/icons-material';
-import { invoke } from '@tauri-apps/api/core';
-import { useI18n } from '../../i18n/I18nProvider';
+import { useRef, useEffect, useCallback, useState } from "react";
+import { Box, Typography, Button, CircularProgress } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import { ContentCut } from "@mui/icons-material";
+import { invoke } from "@tauri-apps/api/core";
+import { useI18n } from "../../i18n/I18nProvider";
 
 interface WaveformTrimEditorProps {
   filePath: string;
@@ -26,7 +26,7 @@ export default function WaveformTrimEditor({
   const [waveform, setWaveform] = useState<number[]>([]);
   const [totalDuration, setTotalDuration] = useState(0);
   const [loading, setLoading] = useState(false);
-  const dragRef = useRef<'start' | 'end' | null>(null);
+  const dragRef = useRef<"start" | "end" | null>(null);
 
   const BARS = 120;
 
@@ -34,13 +34,13 @@ export default function WaveformTrimEditor({
   useEffect(() => {
     if (!filePath) return;
     setLoading(true);
-    invoke<number[]>('get_waveform', { filePath, bars: BARS })
-      .then(data => {
+    invoke<number[]>("get_waveform", { filePath, bars: BARS })
+      .then((data) => {
         setWaveform(data);
         // Approximate duration from bars (rough heuristic — server doesn't return duration here)
         // We'll compute from an audio element
         const audio = new Audio();
-        audio.src = `asset://localhost/${filePath.replace(/\\/g, '/')}`;
+        audio.src = `asset://localhost/${filePath.replace(/\\/g, "/")}`;
         audio.onloadedmetadata = () => setTotalDuration(audio.duration || 0);
         audio.load();
       })
@@ -52,7 +52,7 @@ export default function WaveformTrimEditor({
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || waveform.length === 0) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const w = canvas.width;
@@ -68,9 +68,7 @@ export default function WaveformTrimEditor({
     const endPx = endFrac * w;
 
     // Draw muted regions
-    ctx.fillStyle = theme.palette.mode === 'dark'
-      ? 'rgba(0,0,0,0.5)'
-      : 'rgba(255,255,255,0.5)';
+    ctx.fillStyle = theme.palette.mode === "dark" ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.5)";
     ctx.fillRect(0, 0, startPx, h);
     ctx.fillRect(endPx, 0, w - endPx, h);
 
@@ -83,13 +81,15 @@ export default function WaveformTrimEditor({
 
       ctx.fillStyle = inRegion
         ? theme.palette.primary.main
-        : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)');
+        : theme.palette.mode === "dark"
+          ? "rgba(255,255,255,0.15)"
+          : "rgba(0,0,0,0.15)";
       ctx.fillRect(x + 1, (h - barH) / 2, barW - 2, barH);
     }
 
     // Draw trim handles
     const handleW = 4;
-    const handleColor = '#fff';
+    const handleColor = "#fff";
 
     // Start handle
     ctx.fillStyle = theme.palette.primary.main;
@@ -110,7 +110,7 @@ export default function WaveformTrimEditor({
     // Labels
     if (totalDuration > 0) {
       ctx.fillStyle = theme.palette.text.primary;
-      ctx.font = '10px monospace';
+      ctx.font = "10px monospace";
       ctx.fillText(formatTime(trimStart), startPx + 6, 14);
       const endLabel = formatTime(effectiveEnd);
       const labelX = Math.max(0, endPx - ctx.measureText(endLabel).width - 6);
@@ -131,16 +131,16 @@ export default function WaveformTrimEditor({
     return frac * totalDuration;
   };
 
-  const hitTest = (clientX: number): 'start' | 'end' | null => {
+  const hitTest = (clientX: number): "start" | "end" | null => {
     const canvas = canvasRef.current;
     if (!canvas || totalDuration === 0) return null;
     const rect = canvas.getBoundingClientRect();
-    const x = (clientX - rect.left);
+    const x = clientX - rect.left;
     const w = rect.width;
     const startPx = (trimStart / totalDuration) * w;
     const endPx = ((trimEnd ?? totalDuration) / totalDuration) * w;
-    if (Math.abs(x - startPx) < 12) return 'start';
-    if (Math.abs(x - endPx) < 12) return 'end';
+    if (Math.abs(x - startPx) < 12) return "start";
+    if (Math.abs(x - endPx) < 12) return "end";
     return null;
   };
 
@@ -155,7 +155,7 @@ export default function WaveformTrimEditor({
   const onMouseMove = (e: React.MouseEvent) => {
     if (!dragRef.current || totalDuration === 0) return;
     const t = getTimeAt(e.clientX);
-    if (dragRef.current === 'start') {
+    if (dragRef.current === "start") {
       const newStart = Math.max(0, Math.min(t, (trimEnd ?? totalDuration) - 0.1));
       onChange(newStart, trimEnd);
     } else {
@@ -164,41 +164,51 @@ export default function WaveformTrimEditor({
     }
   };
 
-  const onMouseUp = () => { dragRef.current = null; };
+  const onMouseUp = () => {
+    dragRef.current = null;
+  };
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <ContentCut sx={{ fontSize: 15, color: 'text.secondary' }} />
-          <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.78rem' }}>
-            {t('trimEditor')}
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.5 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <ContentCut sx={{ fontSize: 15, color: "text.secondary" }} />
+          <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.78rem" }}>
+            {t("trimEditor")}
           </Typography>
         </Box>
         <Button
           size="small"
           variant="text"
           onClick={() => onChange(0, null)}
-          sx={{ fontSize: '0.65rem', textTransform: 'none', py: 0, minHeight: 0 }}
+          sx={{ fontSize: "0.65rem", textTransform: "none", py: 0, minHeight: 0 }}
         >
-          {t('reset')}
+          {t("reset")}
         </Button>
       </Box>
 
       <Box
         ref={containerRef}
         sx={{
-          position: 'relative',
-          borderRadius: '10px',
-          overflow: 'hidden',
-          border: '1px solid',
-          borderColor: 'divider',
-          bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
-          cursor: totalDuration > 0 ? 'col-resize' : 'default',
+          position: "relative",
+          borderRadius: "10px",
+          overflow: "hidden",
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)",
+          cursor: totalDuration > 0 ? "col-resize" : "default",
         }}
       >
         {loading && (
-          <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             <CircularProgress size={20} />
           </Box>
         )}
@@ -206,7 +216,7 @@ export default function WaveformTrimEditor({
           ref={canvasRef}
           width={560}
           height={60}
-          style={{ width: '100%', height: 60, display: 'block' }}
+          style={{ width: "100%", height: 60, display: "block" }}
           onMouseDown={onMouseDown}
           onMouseMove={onMouseMove}
           onMouseUp={onMouseUp}
@@ -215,15 +225,29 @@ export default function WaveformTrimEditor({
       </Box>
 
       {totalDuration > 0 && (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-          <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary', fontFamily: 'monospace' }}>
-            {t('trimStart')} : {formatTime(trimStart)}
+        <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
+          <Typography
+            variant="caption"
+            sx={{ fontSize: "0.65rem", color: "text.secondary", fontFamily: "monospace" }}
+          >
+            {t("trimStart")} : {formatTime(trimStart)}
           </Typography>
-          <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'primary.main', fontFamily: 'monospace', fontWeight: 700 }}>
-            {t('trimDuration')} : {formatTime((trimEnd ?? totalDuration) - trimStart)}
+          <Typography
+            variant="caption"
+            sx={{
+              fontSize: "0.65rem",
+              color: "primary.main",
+              fontFamily: "monospace",
+              fontWeight: 700,
+            }}
+          >
+            {t("trimDuration")} : {formatTime((trimEnd ?? totalDuration) - trimStart)}
           </Typography>
-          <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary', fontFamily: 'monospace' }}>
-            {t('trimEnd')} : {formatTime(trimEnd ?? totalDuration)}
+          <Typography
+            variant="caption"
+            sx={{ fontSize: "0.65rem", color: "text.secondary", fontFamily: "monospace" }}
+          >
+            {t("trimEnd")} : {formatTime(trimEnd ?? totalDuration)}
           </Typography>
         </Box>
       )}
@@ -232,8 +256,8 @@ export default function WaveformTrimEditor({
 }
 
 function formatTime(s: number): string {
-  if (!isFinite(s) || isNaN(s)) return '0:00';
+  if (!isFinite(s) || isNaN(s)) return "0:00";
   const m = Math.floor(s / 60);
   const sec = s % 60;
-  return `${m}:${sec.toFixed(2).padStart(5, '0')}`;
+  return `${m}:${sec.toFixed(2).padStart(5, "0")}`;
 }

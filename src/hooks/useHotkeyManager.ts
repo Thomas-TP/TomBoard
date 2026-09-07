@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
-import { register, unregister, isRegistered } from '@tauri-apps/plugin-global-shortcut';
-import { useAppStore } from '../stores/appStore';
-import { Sound } from '../types';
+import { useEffect, useRef } from "react";
+import { register, unregister, isRegistered } from "@tauri-apps/plugin-global-shortcut";
+import { useAppStore } from "../stores/appStore";
+import { Sound } from "../types";
 
 /**
  * Converts our hotkey format (Ctrl+Shift+A) to Tauri format (ctrl+shift+a)
@@ -10,33 +10,33 @@ import { Sound } from '../types';
  */
 function toTauriShortcut(hotkey: string): string {
   return hotkey
-    .split('+')
-    .map(part => {
+    .split("+")
+    .map((part) => {
       const lower = part.toLowerCase();
-      if (lower === 'ctrl') return 'ctrl';
-      if (lower === 'shift') return 'shift';
-      if (lower === 'alt') return 'alt';
-      if (lower === 'meta') return 'super';
+      if (lower === "ctrl") return "ctrl";
+      if (lower === "shift") return "shift";
+      if (lower === "alt") return "alt";
+      if (lower === "meta") return "super";
       // Single letter
       if (part.length === 1) return part.toUpperCase();
       // Named keys
       return part;
     })
-    .join('+');
+    .join("+");
 }
 
 export function useHotkeyManager() {
-  const data = useAppStore(s => s.data);
-  const playSound = useAppStore(s => s.playSound);
+  const data = useAppStore((s) => s.data);
+  const playSound = useAppStore((s) => s.playSound);
   const registeredRef = useRef<Map<string, string>>(new Map()); // shortcut -> soundId
 
   useEffect(() => {
     if (!data) return;
 
-    const profile = data.profiles.find(p => p.id === data.settings.activeProfileId);
+    const profile = data.profiles.find((p) => p.id === data.settings.activeProfileId);
     if (!profile) return;
 
-    const soundsWithHotkeys = profile.sounds.filter(s => s.hotkey);
+    const soundsWithHotkeys = profile.sounds.filter((s) => s.hotkey);
 
     // Build new hotkey map
     const newHotkeys = new Map<string, Sound>();
@@ -51,13 +51,11 @@ export function useHotkeyManager() {
 
     // Unregister removed hotkeys
     const toUnregister = [...registered.entries()].filter(
-      ([shortcut]) => !newHotkeys.has(shortcut)
+      ([shortcut]) => !newHotkeys.has(shortcut),
     );
 
     // Register new hotkeys
-    const toRegister = [...newHotkeys.entries()].filter(
-      ([shortcut]) => !registered.has(shortcut)
-    );
+    const toRegister = [...newHotkeys.entries()].filter(([shortcut]) => !registered.has(shortcut));
 
     (async () => {
       // Unregister old ones
@@ -82,9 +80,9 @@ export function useHotkeyManager() {
             const currentData = useAppStore.getState().data;
             if (!currentData) return;
             const currentProfile = currentData.profiles.find(
-              p => p.id === currentData.settings.activeProfileId
+              (p) => p.id === currentData.settings.activeProfileId,
             );
-            const currentSound = currentProfile?.sounds.find(s => s.id === soundCopy.id);
+            const currentSound = currentProfile?.sounds.find((s) => s.id === soundCopy.id);
             if (currentSound) {
               playSound(currentSound);
             }

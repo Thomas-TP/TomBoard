@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -12,7 +12,7 @@ import {
   Alert,
   CircularProgress,
   Chip,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Mic,
   VolumeUp,
@@ -25,10 +25,10 @@ import {
   PlayArrow,
   Stop,
   Settings,
-} from '@mui/icons-material';
-import { invoke } from '@tauri-apps/api/core';
-import TomBoardLogo from './TomBoardLogo';
-import { useI18n } from '../i18n/I18nProvider';
+} from "@mui/icons-material";
+import { invoke } from "@tauri-apps/api/core";
+import TomBoardLogo from "./TomBoardLogo";
+import { useI18n } from "../i18n/I18nProvider";
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -44,9 +44,9 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const [outputDevices, setOutputDevices] = useState<string[]>([]);
   const [inputDevices, setInputDevices] = useState<string[]>([]);
   const [virtualCables, setVirtualCables] = useState<string[]>([]);
-  const [selectedOutput, setSelectedOutput] = useState('default');
-  const [selectedMic, setSelectedMic] = useState('default');
-  const [selectedCable, setSelectedCable] = useState('none');
+  const [selectedOutput, setSelectedOutput] = useState("default");
+  const [selectedMic, setSelectedMic] = useState("default");
+  const [selectedCable, setSelectedCable] = useState("none");
 
   // Test state
   const [testingOutput, setTestingOutput] = useState(false);
@@ -60,9 +60,9 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     const load = async () => {
       try {
         const [outputs, inputs, cables] = await Promise.all([
-          invoke<string[]>('list_audio_devices').catch(() => ['default']),
-          invoke<string[]>('list_audio_input_devices').catch(() => ['default']),
-          invoke<string[]>('check_virtual_cable').catch(() => []),
+          invoke<string[]>("list_audio_devices").catch(() => ["default"]),
+          invoke<string[]>("list_audio_input_devices").catch(() => ["default"]),
+          invoke<string[]>("check_virtual_cable").catch(() => []),
         ]);
         setOutputDevices(outputs);
         setInputDevices(inputs);
@@ -87,10 +87,10 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     if (step >= STEP_COUNT - 1) {
       const finish = async () => {
         try {
-          await invoke('set_output_device', { deviceName: selectedOutput }).catch(() => {});
-          if (selectedCable !== 'none') {
-            await invoke('set_secondary_device', { deviceName: selectedCable }).catch(() => {});
-            await invoke('set_dual_output', { enabled: true }).catch(() => {});
+          await invoke("set_output_device", { deviceName: selectedOutput }).catch(() => {});
+          if (selectedCable !== "none") {
+            await invoke("set_secondary_device", { deviceName: selectedCable }).catch(() => {});
+            await invoke("set_dual_output", { enabled: true }).catch(() => {});
           }
         } finally {
           onComplete();
@@ -108,21 +108,21 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === 'Enter') next();
-      if (e.key === 'ArrowLeft') prev();
-      if (e.key === 'Escape') onComplete();
+      if (e.key === "ArrowRight" || e.key === "Enter") next();
+      if (e.key === "ArrowLeft") prev();
+      if (e.key === "Escape") onComplete();
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
   }, [next, prev, onComplete]);
 
   const testOutputDevice = async () => {
     setTestingOutput(true);
     setTestStatus(null);
     try {
-      await invoke('set_output_device', { deviceName: selectedOutput });
-      await invoke('test_secondary_output');
-      setTestStatus('success');
+      await invoke("set_output_device", { deviceName: selectedOutput });
+      await invoke("test_secondary_output");
+      setTestStatus("success");
     } catch (e) {
       setTestStatus(`error:${e}`);
     } finally {
@@ -132,7 +132,11 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
   const testMicPassthrough = async () => {
     if (testingMic) {
-      try { await invoke('stop_mic_passthrough'); } catch { /* ignore */ }
+      try {
+        await invoke("stop_mic_passthrough");
+      } catch {
+        /* ignore */
+      }
       setTestingMic(false);
       setTestStatus(null);
       return;
@@ -140,8 +144,10 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     setTestingMic(true);
     setTestStatus(null);
     try {
-      await invoke('start_mic_passthrough', { device: selectedMic === 'default' ? null : selectedMic });
-      setTestStatus('mic-listen');
+      await invoke("start_mic_passthrough", {
+        device: selectedMic === "default" ? null : selectedMic,
+      });
+      setTestStatus("mic-listen");
     } catch (e) {
       setTestStatus(`error:${e}`);
       setTestingMic(false);
@@ -150,18 +156,43 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
   useEffect(() => {
     return () => {
-      invoke('stop_mic_passthrough').catch(() => {});
+      invoke("stop_mic_passthrough").catch(() => {});
     };
   }, [step]);
 
   const isLast = step >= STEP_COUNT - 1;
 
   const stepConfigs = [
-    { title: t('welcomeTitle'), icon: <RocketLaunch />, color: '#7C5CFC', gradient: 'linear-gradient(135deg, #7C5CFC 0%, #B347EA 100%)' },
-    { title: t('audioOutput'), icon: <VolumeUp />, color: '#00D4AA', gradient: 'linear-gradient(135deg, #00D4AA 0%, #00B4D8 100%)' },
-    { title: t('microphone'), icon: <Mic />, color: '#E040FB', gradient: 'linear-gradient(135deg, #E040FB 0%, #7C5CFC 100%)' },
-    { title: t('virtualCable'), icon: <Cable />, color: '#FFB800', gradient: 'linear-gradient(135deg, #FFB800 0%, #FF6B00 100%)' },
-    { title: t('allReady'), icon: <CheckCircle />, color: '#00D4AA', gradient: 'linear-gradient(135deg, #00D4AA 0%, #4CAF50 100%)' },
+    {
+      title: t("welcomeTitle"),
+      icon: <RocketLaunch />,
+      color: "#7C5CFC",
+      gradient: "linear-gradient(135deg, #7C5CFC 0%, #B347EA 100%)",
+    },
+    {
+      title: t("audioOutput"),
+      icon: <VolumeUp />,
+      color: "#00D4AA",
+      gradient: "linear-gradient(135deg, #00D4AA 0%, #00B4D8 100%)",
+    },
+    {
+      title: t("microphone"),
+      icon: <Mic />,
+      color: "#E040FB",
+      gradient: "linear-gradient(135deg, #E040FB 0%, #7C5CFC 100%)",
+    },
+    {
+      title: t("virtualCable"),
+      icon: <Cable />,
+      color: "#FFB800",
+      gradient: "linear-gradient(135deg, #FFB800 0%, #FF6B00 100%)",
+    },
+    {
+      title: t("allReady"),
+      icon: <CheckCircle />,
+      color: "#00D4AA",
+      gradient: "linear-gradient(135deg, #00D4AA 0%, #4CAF50 100%)",
+    },
   ];
 
   const cfg = stepConfigs[step];
@@ -170,22 +201,39 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     switch (step) {
       case 0:
         return (
-          <Box sx={{ textAlign: 'center', py: 2 }}>
-            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
+          <Box sx={{ textAlign: "center", py: 2 }}>
+            <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
               <TomBoardLogo size={64} />
             </Box>
-            <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.88rem', lineHeight: 1.6 }}>
-              {t('wizardIntro')} <strong style={{ color: '#fff' }}>{t('wizardSteps')}</strong> :
+            <Typography
+              sx={{ color: "rgba(255,255,255,0.65)", fontSize: "0.88rem", lineHeight: 1.6 }}
+            >
+              {t("wizardIntro")} <strong style={{ color: "#fff" }}>{t("wizardSteps")}</strong> :
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2, textAlign: 'left' }}>
+            <Box
+              sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 2, textAlign: "left" }}
+            >
               {[
-                { icon: <VolumeUp sx={{ fontSize: 16 }} />, text: t('selectOutputHint') },
-                { icon: <Mic sx={{ fontSize: 16 }} />, text: t('selectMicHint') },
-                { icon: <Cable sx={{ fontSize: 16 }} />, text: t('virtualCableHint') },
+                { icon: <VolumeUp sx={{ fontSize: 16 }} />, text: t("selectOutputHint") },
+                { icon: <Mic sx={{ fontSize: 16 }} />, text: t("selectMicHint") },
+                { icon: <Cable sx={{ fontSize: 16 }} />, text: t("virtualCableHint") },
               ].map((item, i) => (
-                <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 1, borderRadius: '10px', bgcolor: 'rgba(255,255,255,0.04)' }}>
-                  <Box sx={{ color: cfg.color, display: 'flex' }}>{item.icon}</Box>
-                  <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.78rem' }}>{item.text}</Typography>
+                <Box
+                  key={i}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1.5,
+                    px: 1.5,
+                    py: 1,
+                    borderRadius: "10px",
+                    bgcolor: "rgba(255,255,255,0.04)",
+                  }}
+                >
+                  <Box sx={{ color: cfg.color, display: "flex" }}>{item.icon}</Box>
+                  <Typography sx={{ color: "rgba(255,255,255,0.7)", fontSize: "0.78rem" }}>
+                    {item.text}
+                  </Typography>
                 </Box>
               ))}
             </Box>
@@ -195,41 +243,79 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       case 1:
         return (
           <Box sx={{ py: 1 }}>
-            <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.82rem', mb: 2, lineHeight: 1.5 }}>
-              {t('chooseOutput')}
+            <Typography
+              sx={{ color: "rgba(255,255,255,0.65)", fontSize: "0.82rem", mb: 2, lineHeight: 1.5 }}
+            >
+              {t("chooseOutput")}
             </Typography>
             {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={24} /></Box>
+              <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+                <CircularProgress size={24} />
+              </Box>
             ) : (
               <>
-                <FormControl fullWidth size="small" sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: 'rgba(255,255,255,0.05)' }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' }, '& .MuiSelect-select': { color: '#fff' } }}>
-                  <InputLabel>{t('outputDevice')}</InputLabel>
-                  <Select value={selectedOutput} onChange={e => setSelectedOutput(e.target.value)} label={t('outputDevice')}>
-                    {outputDevices.filter(d => !virtualCables.includes(d)).map(dev => (
-                      <MenuItem key={dev} value={dev}>{dev === 'default' ? `🔊 ${t('systemDefault')}` : dev}</MenuItem>
-                    ))}
+                <FormControl
+                  fullWidth
+                  size="small"
+                  sx={{
+                    mb: 2,
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "10px",
+                      bgcolor: "rgba(255,255,255,0.05)",
+                    },
+                    "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.5)" },
+                    "& .MuiSelect-select": { color: "#fff" },
+                  }}
+                >
+                  <InputLabel>{t("outputDevice")}</InputLabel>
+                  <Select
+                    value={selectedOutput}
+                    onChange={(e) => setSelectedOutput(e.target.value)}
+                    label={t("outputDevice")}
+                  >
+                    {outputDevices
+                      .filter((d) => !virtualCables.includes(d))
+                      .map((dev) => (
+                        <MenuItem key={dev} value={dev}>
+                          {dev === "default" ? `🔊 ${t("systemDefault")}` : dev}
+                        </MenuItem>
+                      ))}
                   </Select>
                 </FormControl>
                 <Button
                   variant="outlined"
-                  startIcon={testingOutput ? <CircularProgress size={14} /> : <PlayArrow sx={{ fontSize: 16 }} />}
+                  startIcon={
+                    testingOutput ? (
+                      <CircularProgress size={14} />
+                    ) : (
+                      <PlayArrow sx={{ fontSize: 16 }} />
+                    )
+                  }
                   onClick={testOutputDevice}
                   disabled={testingOutput}
                   fullWidth
-                  sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.78rem', borderColor: 'rgba(255,255,255,0.15)', color: '#fff', '&:hover': { borderColor: cfg.color } }}
+                  sx={{
+                    borderRadius: "10px",
+                    textTransform: "none",
+                    fontWeight: 600,
+                    fontSize: "0.78rem",
+                    borderColor: "rgba(255,255,255,0.15)",
+                    color: "#fff",
+                    "&:hover": { borderColor: cfg.color },
+                  }}
                 >
-                  {testingOutput ? t('testInProgress') : t('testOutput')}
+                  {testingOutput ? t("testInProgress") : t("testOutput")}
                 </Button>
               </>
             )}
-            {testStatus === 'success' && (
-              <Alert severity="success" sx={{ mt: 1.5, borderRadius: '10px', fontSize: '0.75rem' }}>
-                {t('testSuccess')}
+            {testStatus === "success" && (
+              <Alert severity="success" sx={{ mt: 1.5, borderRadius: "10px", fontSize: "0.75rem" }}>
+                {t("testSuccess")}
               </Alert>
             )}
-            {testStatus && testStatus !== 'success' && !testStatus.startsWith('mic-listen') && (
-              <Alert severity="error" sx={{ mt: 1.5, borderRadius: '10px', fontSize: '0.75rem' }}>
-                {testStatus.replace('error:', '')}
+            {testStatus && testStatus !== "success" && !testStatus.startsWith("mic-listen") && (
+              <Alert severity="error" sx={{ mt: 1.5, borderRadius: "10px", fontSize: "0.75rem" }}>
+                {testStatus.replace("error:", "")}
               </Alert>
             )}
           </Box>
@@ -238,41 +324,73 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       case 2:
         return (
           <Box sx={{ py: 1 }}>
-            <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.82rem', mb: 2, lineHeight: 1.5 }}>
-              {t('selectMicDescription')}
+            <Typography
+              sx={{ color: "rgba(255,255,255,0.65)", fontSize: "0.82rem", mb: 2, lineHeight: 1.5 }}
+            >
+              {t("selectMicDescription")}
             </Typography>
             {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={24} /></Box>
+              <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+                <CircularProgress size={24} />
+              </Box>
             ) : (
               <>
-                <FormControl fullWidth size="small" sx={{ mb: 2, '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: 'rgba(255,255,255,0.05)' }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' }, '& .MuiSelect-select': { color: '#fff' } }}>
-                  <InputLabel>{t('microphone')}</InputLabel>
-                  <Select value={selectedMic} onChange={e => setSelectedMic(e.target.value)} label={t('microphone')}>
-                    {inputDevices.map(dev => (
-                      <MenuItem key={dev} value={dev}>{dev === 'default' ? `🎤 ${t('systemDefault')}` : dev}</MenuItem>
+                <FormControl
+                  fullWidth
+                  size="small"
+                  sx={{
+                    mb: 2,
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "10px",
+                      bgcolor: "rgba(255,255,255,0.05)",
+                    },
+                    "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.5)" },
+                    "& .MuiSelect-select": { color: "#fff" },
+                  }}
+                >
+                  <InputLabel>{t("microphone")}</InputLabel>
+                  <Select
+                    value={selectedMic}
+                    onChange={(e) => setSelectedMic(e.target.value)}
+                    label={t("microphone")}
+                  >
+                    {inputDevices.map((dev) => (
+                      <MenuItem key={dev} value={dev}>
+                        {dev === "default" ? `🎤 ${t("systemDefault")}` : dev}
+                      </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
                 <Button
                   variant="outlined"
-                  startIcon={testingMic ? <Stop sx={{ fontSize: 16 }} /> : <Mic sx={{ fontSize: 16 }} />}
+                  startIcon={
+                    testingMic ? <Stop sx={{ fontSize: 16 }} /> : <Mic sx={{ fontSize: 16 }} />
+                  }
                   onClick={testMicPassthrough}
                   fullWidth
-                  color={testingMic ? 'error' : 'inherit'}
-                  sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.78rem', borderColor: testingMic ? undefined : 'rgba(255,255,255,0.15)', color: testingMic ? undefined : '#fff', '&:hover': { borderColor: testingMic ? undefined : cfg.color } }}
+                  color={testingMic ? "error" : "inherit"}
+                  sx={{
+                    borderRadius: "10px",
+                    textTransform: "none",
+                    fontWeight: 600,
+                    fontSize: "0.78rem",
+                    borderColor: testingMic ? undefined : "rgba(255,255,255,0.15)",
+                    color: testingMic ? undefined : "#fff",
+                    "&:hover": { borderColor: testingMic ? undefined : cfg.color },
+                  }}
                 >
-                  {testingMic ? t('stopTest') : t('testMic')}
+                  {testingMic ? t("stopTest") : t("testMic")}
                 </Button>
               </>
             )}
-            {testStatus === 'mic-listen' && (
-              <Alert severity="info" sx={{ mt: 1.5, borderRadius: '10px', fontSize: '0.75rem' }}>
-                {t('speakIntoMic')}
+            {testStatus === "mic-listen" && (
+              <Alert severity="info" sx={{ mt: 1.5, borderRadius: "10px", fontSize: "0.75rem" }}>
+                {t("speakIntoMic")}
               </Alert>
             )}
-            {testStatus && testStatus.startsWith('error:') && (
-              <Alert severity="error" sx={{ mt: 1.5, borderRadius: '10px', fontSize: '0.75rem' }}>
-                {testStatus.replace('error:', '')}
+            {testStatus && testStatus.startsWith("error:") && (
+              <Alert severity="error" sx={{ mt: 1.5, borderRadius: "10px", fontSize: "0.75rem" }}>
+                {testStatus.replace("error:", "")}
               </Alert>
             )}
           </Box>
@@ -281,44 +399,112 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       case 3:
         return (
           <Box sx={{ py: 1 }}>
-            <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.82rem', mb: 1.5, lineHeight: 1.5 }}>
-              {t('virtualCableDescription')}
+            <Typography
+              sx={{
+                color: "rgba(255,255,255,0.65)",
+                fontSize: "0.82rem",
+                mb: 1.5,
+                lineHeight: 1.5,
+              }}
+            >
+              {t("virtualCableDescription")}
             </Typography>
             {virtualCables.length > 0 ? (
               <>
-                <Alert severity="success" icon={<CheckCircle />} sx={{ mb: 2, borderRadius: '10px', fontSize: '0.75rem' }}>
-                  {virtualCables.length} {t('virtualCablesDetected')}
+                <Alert
+                  severity="success"
+                  icon={<CheckCircle />}
+                  sx={{ mb: 2, borderRadius: "10px", fontSize: "0.75rem" }}
+                >
+                  {virtualCables.length} {t("virtualCablesDetected")}
                 </Alert>
-                <FormControl fullWidth size="small" sx={{ mb: 1.5, '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: 'rgba(255,255,255,0.05)' }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' }, '& .MuiSelect-select': { color: '#fff' } }}>
-                  <InputLabel>{t('virtualCableLabel')}</InputLabel>
-                  <Select value={selectedCable} onChange={e => setSelectedCable(e.target.value)} label={t('virtualCableLabel')}>
-                    <MenuItem value="none">{t('noCableDisabled')}</MenuItem>
-                    {virtualCables.map(dev => (
-                      <MenuItem key={dev} value={dev}>{dev}</MenuItem>
+                <FormControl
+                  fullWidth
+                  size="small"
+                  sx={{
+                    mb: 1.5,
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "10px",
+                      bgcolor: "rgba(255,255,255,0.05)",
+                    },
+                    "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.5)" },
+                    "& .MuiSelect-select": { color: "#fff" },
+                  }}
+                >
+                  <InputLabel>{t("virtualCableLabel")}</InputLabel>
+                  <Select
+                    value={selectedCable}
+                    onChange={(e) => setSelectedCable(e.target.value)}
+                    label={t("virtualCableLabel")}
+                  >
+                    <MenuItem value="none">{t("noCableDisabled")}</MenuItem>
+                    {virtualCables.map((dev) => (
+                      <MenuItem key={dev} value={dev}>
+                        {dev}
+                      </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
-                <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.72rem', lineHeight: 1.5 }}>
-                  {t('discordVoiceInputHint')}
+                <Typography
+                  sx={{ color: "rgba(255,255,255,0.4)", fontSize: "0.72rem", lineHeight: 1.5 }}
+                >
+                  {t("discordVoiceInputHint")}
                 </Typography>
               </>
             ) : (
               <>
-                <Alert severity="warning" sx={{ mb: 2, borderRadius: '10px', fontSize: '0.75rem' }}>
-                  {t('noCableDetected')}
+                <Alert severity="warning" sx={{ mb: 2, borderRadius: "10px", fontSize: "0.75rem" }}>
+                  {t("noCableDetected")}
                 </Alert>
-                <Box sx={{ p: 2, borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.78rem', fontWeight: 600, mb: 1 }}>
-                    {t('installVbCableTitle')}
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: "12px",
+                    bgcolor: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      color: "rgba(255,255,255,0.7)",
+                      fontSize: "0.78rem",
+                      fontWeight: 600,
+                      mb: 1,
+                    }}
+                  >
+                    {t("installVbCableTitle")}
                   </Typography>
-                  <Typography component="div" sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.72rem', lineHeight: 1.6 }}>
-                    {t('vbCableStep1')} <Chip label="vb-audio.com/Cable" size="small" variant="outlined" sx={{ fontSize: '0.65rem', height: 20, borderColor: cfg.color, color: cfg.color }} /><br />
-                    {t('vbCableStep2')}<br />
-                    {t('vbCableStep3')}
+                  <Typography
+                    component="div"
+                    sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.72rem", lineHeight: 1.6 }}
+                  >
+                    {t("vbCableStep1")}{" "}
+                    <Chip
+                      label="vb-audio.com/Cable"
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        fontSize: "0.65rem",
+                        height: 20,
+                        borderColor: cfg.color,
+                        color: cfg.color,
+                      }}
+                    />
+                    <br />
+                    {t("vbCableStep2")}
+                    <br />
+                    {t("vbCableStep3")}
                   </Typography>
                 </Box>
-                <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem', mt: 1.5, fontStyle: 'italic' }}>
-                  {t('skipHint')}
+                <Typography
+                  sx={{
+                    color: "rgba(255,255,255,0.35)",
+                    fontSize: "0.7rem",
+                    mt: 1.5,
+                    fontStyle: "italic",
+                  }}
+                >
+                  {t("skipHint")}
                 </Typography>
               </>
             )}
@@ -327,21 +513,51 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
       case 4:
         return (
-          <Box sx={{ textAlign: 'center', py: 2 }}>
-            <Box sx={{ width: 64, height: 64, borderRadius: '50%', background: cfg.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2, boxShadow: `0 8px 32px ${cfg.color}40` }}>
-              <CheckCircle sx={{ fontSize: 32, color: '#fff' }} />
+          <Box sx={{ textAlign: "center", py: 2 }}>
+            <Box
+              sx={{
+                width: 64,
+                height: 64,
+                borderRadius: "50%",
+                background: cfg.gradient,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                mx: "auto",
+                mb: 2,
+                boxShadow: `0 8px 32px ${cfg.color}40`,
+              }}
+            >
+              <CheckCircle sx={{ fontSize: 32, color: "#fff" }} />
             </Box>
-            <Typography sx={{ fontWeight: 700, color: '#fff', fontSize: '1.1rem', mb: 1 }}>
-              {t('configComplete')}
+            <Typography sx={{ fontWeight: 700, color: "#fff", fontSize: "1.1rem", mb: 1 }}>
+              {t("configComplete")}
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mt: 2, textAlign: 'left' }}>
-              <SummaryRow icon={<VolumeUp sx={{ fontSize: 14 }} />} label={t('output')} value={selectedOutput === 'default' ? t('defaultPlaceholder') : selectedOutput} color="#00D4AA" />
-              <SummaryRow icon={<Mic sx={{ fontSize: 14 }} />} label={t('mic')} value={selectedMic === 'default' ? t('defaultPlaceholder') : selectedMic} color="#E040FB" />
-              <SummaryRow icon={<Cable sx={{ fontSize: 14 }} />} label={t('virtualCable')} value={selectedCable === 'none' ? t('notConfigured') : selectedCable} color="#FFB800" />
+            <Box
+              sx={{ display: "flex", flexDirection: "column", gap: 0.75, mt: 2, textAlign: "left" }}
+            >
+              <SummaryRow
+                icon={<VolumeUp sx={{ fontSize: 14 }} />}
+                label={t("output")}
+                value={selectedOutput === "default" ? t("defaultPlaceholder") : selectedOutput}
+                color="#00D4AA"
+              />
+              <SummaryRow
+                icon={<Mic sx={{ fontSize: 14 }} />}
+                label={t("mic")}
+                value={selectedMic === "default" ? t("defaultPlaceholder") : selectedMic}
+                color="#E040FB"
+              />
+              <SummaryRow
+                icon={<Cable sx={{ fontSize: 14 }} />}
+                label={t("virtualCable")}
+                value={selectedCable === "none" ? t("notConfigured") : selectedCable}
+                color="#FFB800"
+              />
             </Box>
-            <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.72rem', mt: 2 }}>
-              <Settings sx={{ fontSize: 12, verticalAlign: 'middle', mr: 0.5 }} />
-              {t('modifySettingsHint')}
+            <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: "0.72rem", mt: 2 }}>
+              <Settings sx={{ fontSize: 12, verticalAlign: "middle", mr: 0.5 }} />
+              {t("modifySettingsHint")}
             </Typography>
           </Box>
         );
@@ -349,44 +565,81 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   };
 
   return (
-    <Box sx={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(8px)' }}>
+    <Box
+      sx={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        bgcolor: "rgba(0,0,0,0.82)",
+        backdropFilter: "blur(8px)",
+      }}
+    >
       <IconButton
         onClick={onComplete}
-        sx={{ position: 'fixed', top: 56, right: 16, zIndex: 10001, color: 'rgba(255,255,255,0.5)', '&:hover': { color: 'rgba(255,255,255,0.85)' } }}
+        sx={{
+          position: "fixed",
+          top: 56,
+          right: 16,
+          zIndex: 10001,
+          color: "rgba(255,255,255,0.5)",
+          "&:hover": { color: "rgba(255,255,255,0.85)" },
+        }}
       >
         <Close />
       </IconButton>
 
       <Fade in={visible} timeout={250}>
-        <Box sx={{
-          maxWidth: 440,
-          width: '90%',
-          bgcolor: '#1A1D24',
-          borderRadius: '20px',
-          border: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
-          overflow: 'hidden',
-        }}>
+        <Box
+          sx={{
+            maxWidth: 440,
+            width: "90%",
+            bgcolor: "#1A1D24",
+            borderRadius: "20px",
+            border: "1px solid rgba(255,255,255,0.08)",
+            boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+            overflow: "hidden",
+          }}
+        >
           <Box sx={{ height: 4, background: cfg.gradient }} />
 
           <Box sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-              <Box sx={{ width: 44, height: 44, borderRadius: '12px', background: cfg.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0, boxShadow: `0 4px 16px ${cfg.color}30` }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
+              <Box
+                sx={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: "12px",
+                  background: cfg.gradient,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#fff",
+                  flexShrink: 0,
+                  boxShadow: `0 4px 16px ${cfg.color}30`,
+                }}
+              >
                 {step === 0 ? <TomBoardLogo size={28} /> : cfg.icon}
               </Box>
               <Box>
-                <Typography sx={{ fontWeight: 700, color: '#fff', fontSize: '0.95rem', lineHeight: 1.2 }}>
+                <Typography
+                  sx={{ fontWeight: 700, color: "#fff", fontSize: "0.95rem", lineHeight: 1.2 }}
+                >
                   {cfg.title}
                 </Typography>
-                <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem', fontWeight: 500 }}>
-                  {t('step')} {step + 1} / {STEP_COUNT}
+                <Typography
+                  sx={{ color: "rgba(255,255,255,0.4)", fontSize: "0.7rem", fontWeight: 500 }}
+                >
+                  {t("step")} {step + 1} / {STEP_COUNT}
                 </Typography>
               </Box>
             </Box>
 
             {renderStepContent()}
 
-            <Box sx={{ display: 'flex', gap: 0.5, mt: 2.5, mb: 2 }}>
+            <Box sx={{ display: "flex", gap: 0.5, mt: 2.5, mb: 2 }}>
               {Array.from({ length: STEP_COUNT }).map((_, i) => (
                 <Box
                   key={i}
@@ -394,34 +647,70 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                     width: i === step ? 20 : 6,
                     height: 6,
                     borderRadius: 3,
-                    bgcolor: i === step ? cfg.color : i < step ? `${cfg.color}60` : 'rgba(255,255,255,0.12)',
-                    transition: 'all 0.3s ease',
-                    cursor: i < step ? 'pointer' : 'default',
+                    bgcolor:
+                      i === step
+                        ? cfg.color
+                        : i < step
+                          ? `${cfg.color}60`
+                          : "rgba(255,255,255,0.12)",
+                    transition: "all 0.3s ease",
+                    cursor: i < step ? "pointer" : "default",
                   }}
                   onClick={() => i < step && goTo(i)}
                 />
               ))}
             </Box>
 
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: "flex", gap: 1 }}>
               {step > 0 && (
                 <Button
                   onClick={prev}
                   size="small"
                   startIcon={<ArrowBack sx={{ fontSize: 14 }} />}
-                  sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600, fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.1)', px: 1.5, '&:hover': { bgcolor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.2)' } }}
+                  sx={{
+                    borderRadius: "10px",
+                    textTransform: "none",
+                    fontWeight: 600,
+                    fontSize: "0.78rem",
+                    color: "rgba(255,255,255,0.6)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    px: 1.5,
+                    "&:hover": {
+                      bgcolor: "rgba(255,255,255,0.05)",
+                      borderColor: "rgba(255,255,255,0.2)",
+                    },
+                  }}
                 >
-                  {t('back')}
+                  {t("back")}
                 </Button>
               )}
               <Button
                 onClick={next}
                 size="small"
                 variant="contained"
-                endIcon={isLast ? <CheckCircle sx={{ fontSize: 16 }} /> : <ArrowForward sx={{ fontSize: 14 }} />}
-                sx={{ flex: 1, borderRadius: '10px', textTransform: 'none', fontWeight: 700, fontSize: '0.82rem', background: cfg.gradient, boxShadow: `0 4px 12px ${cfg.color}30`, '&:hover': { boxShadow: `0 6px 20px ${cfg.color}50` } }}
+                endIcon={
+                  isLast ? (
+                    <CheckCircle sx={{ fontSize: 16 }} />
+                  ) : (
+                    <ArrowForward sx={{ fontSize: 14 }} />
+                  )
+                }
+                sx={{
+                  flex: 1,
+                  borderRadius: "10px",
+                  textTransform: "none",
+                  fontWeight: 700,
+                  fontSize: "0.82rem",
+                  background: cfg.gradient,
+                  boxShadow: `0 4px 12px ${cfg.color}30`,
+                  "&:hover": { boxShadow: `0 6px 20px ${cfg.color}50` },
+                }}
               >
-                {isLast ? t('letsGo') : step === 3 && virtualCables.length === 0 ? t('skip') : t('next')}
+                {isLast
+                  ? t("letsGo")
+                  : step === 3 && virtualCables.length === 0
+                    ? t("skip")
+                    : t("next")}
               </Button>
             </Box>
           </Box>
@@ -431,12 +720,45 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   );
 }
 
-function SummaryRow({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string; color: string }) {
+function SummaryRow({
+  icon,
+  label,
+  value,
+  color,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  color: string;
+}) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 0.75, borderRadius: '8px', bgcolor: 'rgba(255,255,255,0.04)' }}>
-      <Box sx={{ color, display: 'flex' }}>{icon}</Box>
-      <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.72rem', minWidth: 80 }}>{label}</Typography>
-      <Typography sx={{ color: '#fff', fontSize: '0.75rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</Typography>
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+        px: 1.5,
+        py: 0.75,
+        borderRadius: "8px",
+        bgcolor: "rgba(255,255,255,0.04)",
+      }}
+    >
+      <Box sx={{ color, display: "flex" }}>{icon}</Box>
+      <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.72rem", minWidth: 80 }}>
+        {label}
+      </Typography>
+      <Typography
+        sx={{
+          color: "#fff",
+          fontSize: "0.75rem",
+          fontWeight: 600,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {value}
+      </Typography>
     </Box>
   );
 }

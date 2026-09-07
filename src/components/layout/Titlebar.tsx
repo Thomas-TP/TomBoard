@@ -1,11 +1,4 @@
-import {
-  Box,
-  IconButton,
-  Typography,
-  InputBase,
-  Tooltip,
-  Divider,
-} from '@mui/material';
+import { Box, IconButton, Typography, InputBase, Tooltip, Divider } from "@mui/material";
 import {
   Minimize,
   CropSquare,
@@ -17,11 +10,11 @@ import {
   PictureInPicture,
   LibraryMusic,
   History,
-} from '@mui/icons-material';
-import TomBoardLogo from '../TomBoardLogo';
-import { getCurrentWindow } from '@tauri-apps/api/window';
-import { useAppStore } from '../../stores/appStore';
-import { useI18n } from '../../i18n/I18nProvider';
+} from "@mui/icons-material";
+import TomBoardLogo from "../TomBoardLogo";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useAppStore } from "../../stores/appStore";
+import { useI18n } from "../../i18n/I18nProvider";
 
 const appWindow = getCurrentWindow();
 
@@ -42,41 +35,44 @@ export default function Titlebar({
   onVoiceChangerClick,
   onChangelogClick,
 }: TitlebarProps) {
-  const searchQuery = useAppStore(s => s.searchQuery);
-  const setSearchQuery = useAppStore(s => s.setSearchQuery);
+  const searchQuery = useAppStore((s) => s.searchQuery);
+  const setSearchQuery = useAppStore((s) => s.setSearchQuery);
   const { t } = useI18n();
 
   return (
     <Box
       data-tauri-drag-region
       sx={{
-        display: 'flex',
-        alignItems: 'center',
+        display: "flex",
+        alignItems: "center",
         height: 46,
         px: 1.5,
         gap: 1,
-        bgcolor: 'transparent',
-        borderBottom: '1px solid',
-        borderColor: 'divider',
-        userSelect: 'none',
-        WebkitAppRegion: 'drag',
-        position: 'relative',
+        bgcolor: "transparent",
+        borderBottom: "1px solid",
+        borderColor: "divider",
+        userSelect: "none",
+        WebkitAppRegion: "drag",
+        position: "relative",
         zIndex: 1300,
         flexShrink: 0,
       }}
     >
       {/* Logo */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mr: 0.5 }} data-tauri-drag-region>
+      <Box
+        sx={{ display: "flex", alignItems: "center", gap: 0.75, mr: 0.5 }}
+        data-tauri-drag-region
+      >
         <TomBoardLogo size={18} />
         <Typography
           variant="subtitle2"
           sx={{
             fontWeight: 800,
-            background: 'linear-gradient(135deg, #A78BFA 0%, #7C5CFC 50%, #00D4AA 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            fontSize: '0.78rem',
-            letterSpacing: '0.03em',
+            background: "linear-gradient(135deg, #A78BFA 0%, #7C5CFC 50%, #00D4AA 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            fontSize: "0.78rem",
+            letterSpacing: "0.03em",
           }}
           data-tauri-drag-region
         >
@@ -87,31 +83,40 @@ export default function Titlebar({
       {/* Search */}
       <Box
         sx={{
-          display: 'flex',
-          alignItems: 'center',
-          bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)',
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: '10px',
+          display: "flex",
+          alignItems: "center",
+          bgcolor: (theme) =>
+            theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.04)",
+          border: "1px solid",
+          borderColor: "divider",
+          borderRadius: "10px",
           px: 1.25,
           width: 240,
-          transition: 'all 0.2s ease',
-          WebkitAppRegion: 'no-drag',
-          '&:focus-within': {
-            borderColor: 'primary.main',
-            bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(124, 92, 252, 0.06)' : 'rgba(124, 92, 252, 0.04)',
-            boxShadow: '0 0 0 3px rgba(124, 92, 252, 0.08)',
+          transition: "all 0.2s ease",
+          WebkitAppRegion: "no-drag",
+          "&:focus-within": {
+            borderColor: "primary.main",
+            bgcolor: (theme) =>
+              theme.palette.mode === "dark"
+                ? "rgba(124, 92, 252, 0.06)"
+                : "rgba(124, 92, 252, 0.04)",
+            boxShadow: "0 0 0 3px rgba(124, 92, 252, 0.08)",
             width: 300,
           },
         }}
       >
-        <Search sx={{ fontSize: 16, color: 'text.secondary', mr: 0.75, flexShrink: 0 }} />
+        <Search sx={{ fontSize: 16, color: "text.secondary", mr: 0.75, flexShrink: 0 }} />
         <InputBase
-          placeholder={t('searchPlaceholder')}
+          placeholder={t("searchPlaceholder")}
           value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          inputProps={{ 'aria-label': t('searchPlaceholder'), id: 'search-input' }}
-          sx={{ flex: 1, fontSize: '0.78rem', py: 0.4, '& input::placeholder': { opacity: 0.45, fontSize: '0.78rem' } }}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          inputProps={{ "aria-label": t("searchPlaceholder"), id: "search-input" }}
+          sx={{
+            flex: 1,
+            fontSize: "0.78rem",
+            py: 0.4,
+            "& input::placeholder": { opacity: 0.45, fontSize: "0.78rem" },
+          }}
         />
       </Box>
 
@@ -119,8 +124,8 @@ export default function Titlebar({
       <Box sx={{ flex: 1 }} data-tauri-drag-region />
 
       {/* Action buttons */}
-      <Box sx={{ display: 'flex', gap: 0.25, WebkitAppRegion: 'no-drag' }}>
-        <Tooltip title={t('addSound')} arrow>
+      <Box sx={{ display: "flex", gap: 0.25, WebkitAppRegion: "no-drag" }}>
+        <Tooltip title={t("addSound")} arrow>
           <IconButton
             data-tour="add-sound"
             onClick={onAddClick}
@@ -128,42 +133,65 @@ export default function Titlebar({
             sx={{
               width: 30,
               height: 30,
-              borderRadius: '8px',
-              bgcolor: 'primary.main',
-              color: 'primary.contrastText',
-              '&:hover': { bgcolor: 'primary.dark' },
+              borderRadius: "8px",
+              bgcolor: "primary.main",
+              color: "primary.contrastText",
+              "&:hover": { bgcolor: "primary.dark" },
             }}
           >
             <Add sx={{ fontSize: 17 }} />
           </IconButton>
         </Tooltip>
 
-        <Tooltip title={t('voiceChanger')} arrow>
-          <IconButton data-tour="voice-changer" onClick={onVoiceChangerClick} size="small" sx={{ color: 'text.secondary', width: 30, height: 30, borderRadius: '8px' }}>
+        <Tooltip title={t("voiceChanger")} arrow>
+          <IconButton
+            data-tour="voice-changer"
+            onClick={onVoiceChangerClick}
+            size="small"
+            sx={{ color: "text.secondary", width: 30, height: 30, borderRadius: "8px" }}
+          >
             <MicIcon sx={{ fontSize: 16 }} />
           </IconButton>
         </Tooltip>
 
-        <Tooltip title={t('library')} arrow>
-          <IconButton data-tour="library" onClick={onLibraryClick} size="small" sx={{ color: 'text.secondary', width: 30, height: 30, borderRadius: '8px' }}>
+        <Tooltip title={t("library")} arrow>
+          <IconButton
+            data-tour="library"
+            onClick={onLibraryClick}
+            size="small"
+            sx={{ color: "text.secondary", width: 30, height: 30, borderRadius: "8px" }}
+          >
             <LibraryMusic sx={{ fontSize: 16 }} />
           </IconButton>
         </Tooltip>
 
-        <Tooltip title={t('compactMode')} arrow>
-          <IconButton onClick={onOverlayClick} size="small" sx={{ color: 'text.secondary', width: 30, height: 30, borderRadius: '8px' }}>
+        <Tooltip title={t("compactMode")} arrow>
+          <IconButton
+            onClick={onOverlayClick}
+            size="small"
+            sx={{ color: "text.secondary", width: 30, height: 30, borderRadius: "8px" }}
+          >
             <PictureInPicture sx={{ fontSize: 15 }} />
           </IconButton>
         </Tooltip>
 
-        <Tooltip title={t('changelog')} arrow>
-          <IconButton onClick={onChangelogClick} size="small" sx={{ color: 'text.secondary', width: 30, height: 30, borderRadius: '8px' }}>
+        <Tooltip title={t("changelog")} arrow>
+          <IconButton
+            onClick={onChangelogClick}
+            size="small"
+            sx={{ color: "text.secondary", width: 30, height: 30, borderRadius: "8px" }}
+          >
             <History sx={{ fontSize: 16 }} />
           </IconButton>
         </Tooltip>
 
-        <Tooltip title={t('settings')} arrow>
-          <IconButton data-tour="settings" onClick={onSettingsClick} size="small" sx={{ color: 'text.secondary', width: 30, height: 30, borderRadius: '8px' }}>
+        <Tooltip title={t("settings")} arrow>
+          <IconButton
+            data-tour="settings"
+            onClick={onSettingsClick}
+            size="small"
+            sx={{ color: "text.secondary", width: 30, height: 30, borderRadius: "8px" }}
+          >
             <Settings sx={{ fontSize: 16 }} />
           </IconButton>
         </Tooltip>
@@ -175,49 +203,49 @@ export default function Titlebar({
       {/* Window controls */}
       <Box
         sx={{
-          display: 'flex',
+          display: "flex",
           gap: 0,
-          WebkitAppRegion: 'no-drag',
+          WebkitAppRegion: "no-drag",
         }}
       >
         <IconButton
           size="small"
-          aria-label={t('minimize')}
+          aria-label={t("minimize")}
           onClick={() => appWindow.minimize()}
           sx={{
-            borderRadius: '8px',
+            borderRadius: "8px",
             width: 34,
             height: 26,
-            color: 'text.secondary',
-            '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.06)', color: 'text.primary' },
+            color: "text.secondary",
+            "&:hover": { bgcolor: "rgba(255, 255, 255, 0.06)", color: "text.primary" },
           }}
         >
           <Minimize sx={{ fontSize: 14 }} />
         </IconButton>
         <IconButton
           size="small"
-          aria-label={t('maximize')}
+          aria-label={t("maximize")}
           onClick={() => appWindow.toggleMaximize()}
           sx={{
-            borderRadius: '8px',
+            borderRadius: "8px",
             width: 34,
             height: 26,
-            color: 'text.secondary',
-            '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.06)', color: 'text.primary' },
+            color: "text.secondary",
+            "&:hover": { bgcolor: "rgba(255, 255, 255, 0.06)", color: "text.primary" },
           }}
         >
           <CropSquare sx={{ fontSize: 12 }} />
         </IconButton>
         <IconButton
           size="small"
-          aria-label={t('close')}
+          aria-label={t("close")}
           onClick={() => appWindow.close()}
           sx={{
-            borderRadius: '8px',
+            borderRadius: "8px",
             width: 34,
             height: 26,
-            color: 'text.secondary',
-            '&:hover': { bgcolor: '#E04848', color: '#fff' },
+            color: "text.secondary",
+            "&:hover": { bgcolor: "#E04848", color: "#fff" },
           }}
         >
           <Close sx={{ fontSize: 14 }} />

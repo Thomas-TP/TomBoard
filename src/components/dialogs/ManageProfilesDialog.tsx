@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -18,18 +18,10 @@ import {
   Menu,
   MenuItem,
   Divider,
-} from '@mui/material';
-import {
-  Add,
-  MoreVert,
-  Edit,
-  Delete,
-  ContentCopy,
-  CheckCircle,
-  Person,
-} from '@mui/icons-material';
-import { useAppStore } from '../../stores/appStore';
-import { useI18n } from '../../i18n/I18nProvider';
+} from "@mui/material";
+import { Add, MoreVert, Edit, Delete, ContentCopy, CheckCircle, Person } from "@mui/icons-material";
+import { useAppStore } from "../../stores/appStore";
+import { useI18n } from "../../i18n/I18nProvider";
 
 interface ManageProfilesDialogProps {
   open: boolean;
@@ -37,16 +29,16 @@ interface ManageProfilesDialogProps {
 }
 
 export default function ManageProfilesDialog({ open, onClose }: ManageProfilesDialogProps) {
-  const data = useAppStore(s => s.data);
-  const addProfile = useAppStore(s => s.addProfile);
-  const switchProfile = useAppStore(s => s.switchProfile);
-  const renameProfile = useAppStore(s => s.renameProfile);
-  const deleteProfile = useAppStore(s => s.deleteProfile);
-  const duplicateProfile = useAppStore(s => s.duplicateProfile);
+  const data = useAppStore((s) => s.data);
+  const addProfile = useAppStore((s) => s.addProfile);
+  const switchProfile = useAppStore((s) => s.switchProfile);
+  const renameProfile = useAppStore((s) => s.renameProfile);
+  const deleteProfile = useAppStore((s) => s.deleteProfile);
+  const duplicateProfile = useAppStore((s) => s.duplicateProfile);
 
-  const [newName, setNewName] = useState('');
+  const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState('');
+  const [editName, setEditName] = useState("");
   const [menuAnchor, setMenuAnchor] = useState<{ el: HTMLElement; profileId: string } | null>(null);
 
   const profiles = data?.profiles ?? [];
@@ -57,7 +49,7 @@ export default function ManageProfilesDialog({ open, onClose }: ManageProfilesDi
     const name = newName.trim();
     if (!name) return;
     await addProfile(name);
-    setNewName('');
+    setNewName("");
   };
 
   const handleRename = async (id: string) => {
@@ -65,7 +57,7 @@ export default function ManageProfilesDialog({ open, onClose }: ManageProfilesDi
     if (!name) return;
     await renameProfile(id, name);
     setEditingId(null);
-    setEditName('');
+    setEditName("");
   };
 
   const handleDelete = async (id: string) => {
@@ -75,15 +67,15 @@ export default function ManageProfilesDialog({ open, onClose }: ManageProfilesDi
 
   const handleDuplicate = async (id: string) => {
     setMenuAnchor(null);
-    const source = profiles.find(p => p.id === id);
+    const source = profiles.find((p) => p.id === id);
     if (source) {
-      await duplicateProfile(id, `${source.name} (${t('duplicate').toLowerCase()})`);
+      await duplicateProfile(id, `${source.name} (${t("duplicate").toLowerCase()})`);
     }
   };
 
   const startEditing = (id: string) => {
     setMenuAnchor(null);
-    const profile = profiles.find(p => p.id === id);
+    const profile = profiles.find((p) => p.id === id);
     if (profile) {
       setEditingId(id);
       setEditName(profile.name);
@@ -96,25 +88,34 @@ export default function ManageProfilesDialog({ open, onClose }: ManageProfilesDi
       onClose={onClose}
       maxWidth="xs"
       fullWidth
-      slotProps={{ paper: { sx: { borderRadius: 3, bgcolor: 'background.paper' } } }}
+      slotProps={{ paper: { sx: { borderRadius: 3, bgcolor: "background.paper" } } }}
     >
-      <DialogTitle sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}><Person sx={{ fontSize: 22 }} /> {t('profiles')}</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 0.5 }}>
+        <Person sx={{ fontSize: 22 }} /> {t("profiles")}
+      </DialogTitle>
       <DialogContent dividers sx={{ p: 0 }}>
         <List dense>
-          {profiles.map(profile => (
+          {profiles.map((profile) => (
             <ListItemButton
               key={profile.id}
               selected={profile.id === activeId}
               onClick={() => switchProfile(profile.id)}
               sx={{
                 py: 1.5,
-                '&.Mui-selected': {
-                  bgcolor: 'action.selected',
+                "&.Mui-selected": {
+                  bgcolor: "action.selected",
                 },
               }}
             >
               <ListItemIcon sx={{ minWidth: 40 }}>
-                <Avatar sx={{ width: 30, height: 30, fontSize: '0.8rem', bgcolor: profile.id === activeId ? 'primary.main' : 'action.hover' }}>
+                <Avatar
+                  sx={{
+                    width: 30,
+                    height: 30,
+                    fontSize: "0.8rem",
+                    bgcolor: profile.id === activeId ? "primary.main" : "action.hover",
+                  }}
+                >
                   {profile.name[0]?.toUpperCase()}
                 </Avatar>
               </ListItemIcon>
@@ -122,35 +123,35 @@ export default function ManageProfilesDialog({ open, onClose }: ManageProfilesDi
               {editingId === profile.id ? (
                 <TextField
                   value={editName}
-                  onChange={e => setEditName(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') handleRename(profile.id);
-                    if (e.key === 'Escape') setEditingId(null);
+                  onChange={(e) => setEditName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleRename(profile.id);
+                    if (e.key === "Escape") setEditingId(null);
                   }}
                   onBlur={() => handleRename(profile.id)}
                   size="small"
                   autoFocus
                   sx={{ flex: 1 }}
-                  onClick={e => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
                 />
               ) : (
                 <ListItemText
                   primary={profile.name}
-                  secondary={`${profile.sounds.length} ${t('sounds')} · ${profile.categories.length} ${t('categories').toLowerCase()}`}
+                  secondary={`${profile.sounds.length} ${t("sounds")} · ${profile.categories.length} ${t("categories").toLowerCase()}`}
                   slotProps={{
                     primary: { sx: { fontWeight: profile.id === activeId ? 700 : 500 } },
-                    secondary: { sx: { fontSize: '0.7rem' } },
+                    secondary: { sx: { fontSize: "0.7rem" } },
                   }}
                 />
               )}
 
               <ListItemSecondaryAction>
                 {profile.id === activeId && (
-                  <CheckCircle sx={{ fontSize: 16, color: 'primary.main', mr: 0.5 }} />
+                  <CheckCircle sx={{ fontSize: 16, color: "primary.main", mr: 0.5 }} />
                 )}
                 <IconButton
                   size="small"
-                  onClick={e => {
+                  onClick={(e) => {
                     e.stopPropagation();
                     setMenuAnchor({ el: e.currentTarget, profileId: profile.id });
                   }}
@@ -165,16 +166,16 @@ export default function ManageProfilesDialog({ open, onClose }: ManageProfilesDi
         <Divider />
 
         {/* Add new profile */}
-        <Box sx={{ display: 'flex', gap: 1, p: 2, alignItems: 'center' }}>
+        <Box sx={{ display: "flex", gap: 1, p: 2, alignItems: "center" }}>
           <TextField
             value={newName}
-            onChange={e => setNewName(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleAdd()}
-            placeholder={t('newProfilePlaceholder')}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            placeholder={t("newProfilePlaceholder")}
             size="small"
             fullWidth
           />
-          <Tooltip title={t('add')}>
+          <Tooltip title={t("add")}>
             <span>
               <IconButton
                 onClick={handleAdd}
@@ -190,27 +191,25 @@ export default function ManageProfilesDialog({ open, onClose }: ManageProfilesDi
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} variant="contained">{t('close')}</Button>
+        <Button onClick={onClose} variant="contained">
+          {t("close")}
+        </Button>
       </DialogActions>
 
       {/* Context menu */}
-      <Menu
-        anchorEl={menuAnchor?.el}
-        open={!!menuAnchor}
-        onClose={() => setMenuAnchor(null)}
-      >
+      <Menu anchorEl={menuAnchor?.el} open={!!menuAnchor} onClose={() => setMenuAnchor(null)}>
         <MenuItem onClick={() => menuAnchor && startEditing(menuAnchor.profileId)}>
-          <Edit sx={{ fontSize: 18, mr: 1 }} /> {t('rename')}
+          <Edit sx={{ fontSize: 18, mr: 1 }} /> {t("rename")}
         </MenuItem>
         <MenuItem onClick={() => menuAnchor && handleDuplicate(menuAnchor.profileId)}>
-          <ContentCopy sx={{ fontSize: 18, mr: 1 }} /> {t('duplicate')}
+          <ContentCopy sx={{ fontSize: 18, mr: 1 }} /> {t("duplicate")}
         </MenuItem>
         {profiles.length > 1 && (
           <MenuItem
             onClick={() => menuAnchor && handleDelete(menuAnchor.profileId)}
-            sx={{ color: 'error.main' }}
+            sx={{ color: "error.main" }}
           >
-            <Delete sx={{ fontSize: 18, mr: 1 }} /> {t('delete')}
+            <Delete sx={{ fontSize: 18, mr: 1 }} /> {t("delete")}
           </MenuItem>
         )}
       </Menu>

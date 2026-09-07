@@ -1,4 +1,4 @@
-import { SvgIconProps } from '@mui/material';
+import { SvgIconProps } from "@mui/material";
 import {
   VolumeUp,
   MusicNote,
@@ -54,8 +54,8 @@ import {
   // Misc
   RecordVoiceOver,
   Star,
-} from '@mui/icons-material';
-import React from 'react';
+} from "@mui/icons-material";
+import React from "react";
 
 // ── Category icon map (shared with Sidebar) ──
 
@@ -83,18 +83,18 @@ export function renderCategoryIcon(iconId: string, props?: SvgIconProps): React.
 // ── Category options for pickers ──
 
 export const ICON_OPTIONS = [
-  { id: 'apps', label: 'Tous', i18nKey: 'iconAll' },
-  { id: 'sports_esports', label: 'Gaming', i18nKey: 'iconGaming' },
-  { id: 'emoji_emotions', label: 'Fun', i18nKey: 'iconFun' },
-  { id: 'music_note', label: 'Musique', i18nKey: 'iconMusic' },
-  { id: 'mic', label: 'Voix', i18nKey: 'iconVoice' },
-  { id: 'movie', label: 'Film', i18nKey: 'iconMovie' },
-  { id: 'announcement', label: 'Annonce', i18nKey: 'iconAnnounce' },
-  { id: 'notifications', label: 'Notif', i18nKey: 'iconNotif' },
-  { id: 'build', label: 'SFX', i18nKey: 'iconSfx' },
-  { id: 'pets', label: 'Animaux', i18nKey: 'iconAnimals' },
-  { id: 'nature', label: 'Nature', i18nKey: 'iconNature' },
-  { id: 'celebration', label: 'Fête', i18nKey: 'iconParty' },
+  { id: "apps", label: "Tous", i18nKey: "iconAll" },
+  { id: "sports_esports", label: "Gaming", i18nKey: "iconGaming" },
+  { id: "emoji_emotions", label: "Fun", i18nKey: "iconFun" },
+  { id: "music_note", label: "Musique", i18nKey: "iconMusic" },
+  { id: "mic", label: "Voix", i18nKey: "iconVoice" },
+  { id: "movie", label: "Film", i18nKey: "iconMovie" },
+  { id: "announcement", label: "Annonce", i18nKey: "iconAnnounce" },
+  { id: "notifications", label: "Notif", i18nKey: "iconNotif" },
+  { id: "build", label: "SFX", i18nKey: "iconSfx" },
+  { id: "pets", label: "Animaux", i18nKey: "iconAnimals" },
+  { id: "nature", label: "Nature", i18nKey: "iconNature" },
+  { id: "celebration", label: "Fête", i18nKey: "iconParty" },
 ];
 
 // ── Sound icon system ──
@@ -157,27 +157,60 @@ export const SOUND_ICON_MAP: Record<string, React.ComponentType<SvgIconProps>> =
 
 export const SOUND_ICONS = [
   // Row 1: Sound & Music
-  'volume_up', 'music_note', 'queue_music', 'mic', 'headphones',
-  'piano', 'album', 'equalizer', 'graphic_eq',
+  "volume_up",
+  "music_note",
+  "queue_music",
+  "mic",
+  "headphones",
+  "piano",
+  "album",
+  "equalizer",
+  "graphic_eq",
   // Row 2: Effects
-  'notifications', 'campaign', 'flare', 'whatshot', 'electric_bolt',
-  'auto_awesome', 'celebration', 'festival', 'theater_comedy',
+  "notifications",
+  "campaign",
+  "flare",
+  "whatshot",
+  "electric_bolt",
+  "auto_awesome",
+  "celebration",
+  "festival",
+  "theater_comedy",
   // Row 3: People & Faces
-  'visibility', 'waving_hand', 'front_hand', 'skull',
-  'sentiment_very_satisfied', 'sentiment_very_dissatisfied',
-  'emoji_emotions', 'sentiment_satisfied_alt', 'face',
+  "visibility",
+  "waving_hand",
+  "front_hand",
+  "skull",
+  "sentiment_very_satisfied",
+  "sentiment_very_dissatisfied",
+  "emoji_emotions",
+  "sentiment_satisfied_alt",
+  "face",
   // Row 4: Animals & Objects
-  'pets', 'flutter', 'rocket_launch', 'emoji_events',
-  'sports_soccer', 'sports_esports', 'sports_kabaddi',
-  'shield', 'diamond', 'paid',
+  "pets",
+  "flutter",
+  "rocket_launch",
+  "emoji_events",
+  "sports_soccer",
+  "sports_esports",
+  "sports_kabaddi",
+  "shield",
+  "diamond",
+  "paid",
   // Row 5: Hearts & Misc
-  'favorite', 'favorite_border', 'heart_broken',
-  'movie', 'star', 'record_voice_over', 'bolt', 'forest',
+  "favorite",
+  "favorite_border",
+  "heart_broken",
+  "movie",
+  "star",
+  "record_voice_over",
+  "bolt",
+  "forest",
 ];
 
 export function renderSoundIcon(icon: string, props?: SvgIconProps): React.ReactNode {
   const Icon = SOUND_ICON_MAP[icon];
   if (Icon) return <Icon {...props} />;
   // Legacy emoji fallback
-  return <span style={{ fontSize: props?.sx ? undefined : 'inherit' }}>{icon}</span>;
+  return <span style={{ fontSize: props?.sx ? undefined : "inherit" }}>{icon}</span>;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from "react";
 import {
   Drawer,
   Box,
@@ -11,18 +11,11 @@ import {
   Alert,
   Tooltip,
   Collapse,
-} from '@mui/material';
-import {
-  Close,
-  Mic as MicIcon,
-  MicOff,
-  Tune,
-  ExpandMore,
-  ExpandLess,
-} from '@mui/icons-material';
-import { invoke } from '@tauri-apps/api/core';
-import MicVisualizer from './sound/MicVisualizer';
-import { useI18n } from '../i18n/I18nProvider';
+} from "@mui/material";
+import { Close, Mic as MicIcon, MicOff, Tune, ExpandMore, ExpandLess } from "@mui/icons-material";
+import { invoke } from "@tauri-apps/api/core";
+import MicVisualizer from "./sound/MicVisualizer";
+import { useI18n } from "../i18n/I18nProvider";
 
 interface VoicePresetInfo {
   id: string;
@@ -55,7 +48,7 @@ interface VoiceFxParams {
 }
 
 const defaultParams: VoiceFxParams = {
-  preset: 'none',
+  preset: "none",
   pitch_shift: 0,
   reverb_mix: 0,
   reverb_decay: 0.5,
@@ -78,11 +71,11 @@ const defaultParams: VoiceFxParams = {
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
-  base: '🎤 Base',
-  pitch: '🎵 Pitch',
-  character: '🎭 Characters',
-  effect: '🔊 Effects',
-  custom: '🎛️ Custom',
+  base: "🎤 Base",
+  pitch: "🎵 Pitch",
+  character: "🎭 Characters",
+  effect: "🔊 Effects",
+  custom: "🎛️ Custom",
 };
 
 interface VoiceChangerPanelProps {
@@ -92,20 +85,18 @@ interface VoiceChangerPanelProps {
 
 export default function VoiceChangerPanel({ open, onClose }: VoiceChangerPanelProps) {
   const [presets, setPresets] = useState<VoicePresetInfo[]>([]);
-  const [activePreset, setActivePreset] = useState('none');
+  const [activePreset, setActivePreset] = useState("none");
   const [params, setParams] = useState<VoiceFxParams>(defaultParams);
   const [error, setError] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [micActive, setMicActive] = useState(false);
   const { t } = useI18n();
 
-
-
   useEffect(() => {
     if (!open) return;
-    invoke<VoicePresetInfo[]>('list_voice_presets').then(setPresets).catch(console.error);
-    invoke<VoiceFxParams>('get_voice_params')
-      .then(p => {
+    invoke<VoicePresetInfo[]>("list_voice_presets").then(setPresets).catch(console.error);
+    invoke<VoiceFxParams>("get_voice_params")
+      .then((p) => {
         setParams(p);
         setActivePreset(p.preset);
         setMicActive(true);
@@ -116,9 +107,9 @@ export default function VoiceChangerPanel({ open, onClose }: VoiceChangerPanelPr
   const selectPreset = useCallback(async (presetId: string) => {
     setError(null);
     try {
-      await invoke('set_voice_preset', { preset: presetId });
+      await invoke("set_voice_preset", { preset: presetId });
       setActivePreset(presetId);
-      const p = await invoke<VoiceFxParams>('get_voice_params');
+      const p = await invoke<VoiceFxParams>("get_voice_params");
       setParams(p);
       setMicActive(true);
     } catch (e) {
@@ -126,18 +117,21 @@ export default function VoiceChangerPanel({ open, onClose }: VoiceChangerPanelPr
     }
   }, []);
 
-  const updateParam = useCallback(async (key: keyof VoiceFxParams, value: number) => {
-    const newParams = { ...params, [key]: value, preset: 'custom' };
-    setParams(newParams);
-    setActivePreset('custom');
-    try {
-      await invoke('set_voice_custom_params', { params: newParams });
-      setError(null);
-      setMicActive(true);
-    } catch (e) {
-      setError(`${e}`);
-    }
-  }, [params]);
+  const updateParam = useCallback(
+    async (key: keyof VoiceFxParams, value: number) => {
+      const newParams = { ...params, [key]: value, preset: "custom" };
+      setParams(newParams);
+      setActivePreset("custom");
+      try {
+        await invoke("set_voice_custom_params", { params: newParams });
+        setError(null);
+        setMicActive(true);
+      } catch (e) {
+        setError(`${e}`);
+      }
+    },
+    [params],
+  );
 
   // Group presets by category
   const grouped = presets.reduce<Record<string, VoicePresetInfo[]>>((acc, p) => {
@@ -154,60 +148,59 @@ export default function VoiceChangerPanel({ open, onClose }: VoiceChangerPanelPr
         paper: {
           sx: {
             width: 380,
-            bgcolor: 'background.paper',
-            backgroundImage: 'none',
-            top: '46px',
-            height: 'calc(100% - 46px)',
+            bgcolor: "background.paper",
+            backgroundImage: "none",
+            top: "46px",
+            height: "calc(100% - 46px)",
           },
         },
       }}
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
         {/* Header */}
         <Box
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
             px: 2.5,
             py: 1.5,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
+            borderBottom: "1px solid",
+            borderColor: "divider",
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Box
               sx={{
                 width: 28,
                 height: 28,
-                borderRadius: '8px',
-                bgcolor: micActive ? 'rgba(0, 212, 170, 0.12)' : 'action.hover',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                borderRadius: "8px",
+                bgcolor: micActive ? "rgba(0, 212, 170, 0.12)" : "action.hover",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
               {micActive ? (
-                <MicIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                <MicIcon sx={{ fontSize: 16, color: "success.main" }} />
               ) : (
-                <MicOff sx={{ fontSize: 16, color: 'text.disabled' }} />
+                <MicOff sx={{ fontSize: 16, color: "text.disabled" }} />
               )}
             </Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '0.95rem', letterSpacing: '-0.01em' }}>
-              {t('voiceChangerTitle')}
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: 700, fontSize: "0.95rem", letterSpacing: "-0.01em" }}
+            >
+              {t("voiceChangerTitle")}
             </Typography>
           </Box>
-          <IconButton
-            onClick={onClose}
-            size="small"
-            sx={{ width: 28, height: 28 }}
-          >
+          <IconButton onClick={onClose} size="small" sx={{ width: 28, height: 28 }}>
             <Close sx={{ fontSize: 16 }} />
           </IconButton>
         </Box>
 
         {/* Content */}
-        <Box sx={{ flex: 1, overflow: 'auto', px: 2.5, py: 2 }}>
+        <Box sx={{ flex: 1, overflow: "auto", px: 2.5, py: 2 }}>
           {/* Spectrogram + VU meter */}
           <MicVisualizer active={micActive} />
 
@@ -217,10 +210,10 @@ export default function VoiceChangerPanel({ open, onClose }: VoiceChangerPanelPr
               onClose={() => setError(null)}
               sx={{
                 mb: 2,
-                fontSize: '0.72rem',
+                fontSize: "0.72rem",
                 py: 0.5,
-                borderRadius: '10px',
-                '& .MuiAlert-icon': { fontSize: 18 },
+                borderRadius: "10px",
+                "& .MuiAlert-icon": { fontSize: 18 },
               }}
             >
               {error}
@@ -231,25 +224,25 @@ export default function VoiceChangerPanel({ open, onClose }: VoiceChangerPanelPr
           {Object.entries(CATEGORY_LABELS).map(([cat, _defaultLabel]) => {
             const items = grouped[cat];
             if (!items || items.length === 0) return null;
-            const label = t(('cat' + cat.charAt(0).toUpperCase() + cat.slice(1)) as any);
+            const label = t(("cat" + cat.charAt(0).toUpperCase() + cat.slice(1)) as any);
             return (
               <Box key={cat} sx={{ mb: 2 }}>
                 <Typography
                   variant="caption"
                   sx={{
                     fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                    color: 'text.secondary',
-                    fontSize: '0.6rem',
+                    textTransform: "uppercase",
+                    letterSpacing: "0.1em",
+                    color: "text.secondary",
+                    fontSize: "0.6rem",
                     mb: 0.75,
-                    display: 'block',
+                    display: "block",
                   }}
                 >
                   {label}
                 </Typography>
                 <Grid container spacing={0.75}>
-                  {items.map(preset => {
+                  {items.map((preset) => {
                     const isActive = activePreset === preset.id;
                     return (
                       <Grid size={{ xs: 4 }} key={preset.id}>
@@ -257,47 +250,48 @@ export default function VoiceChangerPanel({ open, onClose }: VoiceChangerPanelPr
                           <Box
                             onClick={() => selectPreset(preset.id)}
                             sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'center',
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              justifyContent: "center",
                               p: 1,
-                              borderRadius: '10px',
-                              cursor: 'pointer',
-                              border: '1.5px solid',
-                              borderColor: isActive ? 'primary.main' : 'divider',
+                              borderRadius: "10px",
+                              cursor: "pointer",
+                              border: "1.5px solid",
+                              borderColor: isActive ? "primary.main" : "divider",
                               bgcolor: isActive
-                                ? 'rgba(124, 92, 252, 0.12)'
-                                : (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
-                              transition: 'all 0.15s ease',
-                              '&:hover': {
-                                bgcolor: isActive
-                                  ? 'rgba(124, 92, 252, 0.18)'
-                                  : 'action.hover',
-                                transform: 'scale(1.02)',
-                                borderColor: isActive ? 'primary.main' : 'rgba(124, 92, 252, 0.3)',
+                                ? "rgba(124, 92, 252, 0.12)"
+                                : (theme) =>
+                                    theme.palette.mode === "dark"
+                                      ? "rgba(255, 255, 255, 0.03)"
+                                      : "rgba(0, 0, 0, 0.02)",
+                              transition: "all 0.15s ease",
+                              "&:hover": {
+                                bgcolor: isActive ? "rgba(124, 92, 252, 0.18)" : "action.hover",
+                                transform: "scale(1.02)",
+                                borderColor: isActive ? "primary.main" : "rgba(124, 92, 252, 0.3)",
                               },
                               minHeight: 62,
                               ...(isActive && {
-                                boxShadow: '0 0 12px rgba(124, 92, 252, 0.15)',
+                                boxShadow: "0 0 12px rgba(124, 92, 252, 0.15)",
                               }),
                             }}
                           >
-                            <Typography sx={{ fontSize: '1.3rem', lineHeight: 1 }}>
+                            <Typography sx={{ fontSize: "1.3rem", lineHeight: 1 }}>
                               {preset.icon}
                             </Typography>
                             <Typography
                               variant="caption"
                               sx={{
                                 fontWeight: isActive ? 700 : 500,
-                                fontSize: '0.62rem',
+                                fontSize: "0.62rem",
                                 mt: 0.3,
-                                textAlign: 'center',
+                                textAlign: "center",
                                 lineHeight: 1.1,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                maxWidth: '100%',
-                                color: isActive ? 'primary.main' : 'text.primary',
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                maxWidth: "100%",
+                                color: isActive ? "primary.main" : "text.primary",
                               }}
                             >
                               {preset.name}
@@ -318,54 +312,151 @@ export default function VoiceChangerPanel({ open, onClose }: VoiceChangerPanelPr
           <Box
             onClick={() => setShowAdvanced(!showAdvanced)}
             sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              cursor: "pointer",
               py: 0.75,
               px: 0.5,
-              borderRadius: '8px',
-              transition: 'all 0.15s ease',
-              '&:hover': { bgcolor: 'action.hover' },
+              borderRadius: "8px",
+              transition: "all 0.15s ease",
+              "&:hover": { bgcolor: "action.hover" },
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Tune sx={{ fontSize: 15, color: 'text.secondary' }} />
-              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.78rem' }}>
-                {t('advancedSettings')}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Tune sx={{ fontSize: 15, color: "text.secondary" }} />
+              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.78rem" }}>
+                {t("advancedSettings")}
               </Typography>
             </Box>
-            {showAdvanced ? <ExpandLess sx={{ fontSize: 16, color: 'text.secondary' }} /> : <ExpandMore sx={{ fontSize: 16, color: 'text.secondary' }} />}
+            {showAdvanced ? (
+              <ExpandLess sx={{ fontSize: 16, color: "text.secondary" }} />
+            ) : (
+              <ExpandMore sx={{ fontSize: 16, color: "text.secondary" }} />
+            )}
           </Box>
 
           <Collapse in={showAdvanced}>
-            <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              <ParamSlider label={t('pitchLabel')} value={params.pitch_shift} min={-24} max={24} step={0.5}
-                onChange={v => updateParam('pitch_shift', v)} format={v => `${v > 0 ? '+' : ''}${v}`} />
-              <ParamSlider label={t('reverbLabel')} value={params.reverb_mix} min={0} max={1} step={0.01}
-                onChange={v => updateParam('reverb_mix', v)} format={v => `${Math.round(v * 100)}%`} />
-              <ParamSlider label={t('reverbDecayLabel')} value={params.reverb_decay} min={0} max={0.99} step={0.01}
-                onChange={v => updateParam('reverb_decay', v)} format={v => `${Math.round(v * 100)}%`} />
-              <ParamSlider label={t('ringModFreqLabel')} value={params.ring_mod_freq} min={0} max={1000} step={1}
-                onChange={v => updateParam('ring_mod_freq', v)} format={v => v === 0 ? 'Off' : `${v} Hz`} />
-              <ParamSlider label={t('ringModMixLabel')} value={params.ring_mod_mix} min={0} max={1} step={0.01}
-                onChange={v => updateParam('ring_mod_mix', v)} format={v => `${Math.round(v * 100)}%`} />
-              <ParamSlider label={t('distortionLabel')} value={params.distortion} min={0} max={1} step={0.01}
-                onChange={v => updateParam('distortion', v)} format={v => `${Math.round(v * 100)}%`} />
-              <ParamSlider label={t('lowpassLabel')} value={params.lowpass_cutoff} min={200} max={20000} step={100}
-                onChange={v => updateParam('lowpass_cutoff', v)} format={v => v >= 19900 ? 'Off' : `${v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v} Hz`} />
-              <ParamSlider label={t('highpassLabel')} value={params.highpass_cutoff} min={20} max={2000} step={10}
-                onChange={v => updateParam('highpass_cutoff', v)} format={v => v <= 25 ? 'Off' : `${v} Hz`} />
-              <ParamSlider label={t('vibratoRateLabel')} value={params.vibrato_rate} min={0} max={20} step={0.1}
-                onChange={v => updateParam('vibrato_rate', v)} format={v => v === 0 ? 'Off' : `${v.toFixed(1)} Hz`} />
-              <ParamSlider label={t('vibratoDepthLabel')} value={params.vibrato_depth} min={0} max={2} step={0.05}
-                onChange={v => updateParam('vibrato_depth', v)} format={v => `${Math.round(v * 100)}%`} />
-              <ParamSlider label={t('chorusLabel')} value={params.chorus_mix} min={0} max={1} step={0.01}
-                onChange={v => updateParam('chorus_mix', v)} format={v => `${Math.round(v * 100)}%`} />
-              <ParamSlider label={t('gateLabel')} value={params.gate_threshold} min={0} max={0.1} step={0.001}
-                onChange={v => updateParam('gate_threshold', v)} format={v => v === 0 ? 'Off' : `${(v * 1000).toFixed(0)}`} />
-              <ParamSlider label={t('outputGainLabel')} value={params.gain} min={0.1} max={3} step={0.05}
-                onChange={v => updateParam('gain', v)} format={v => `${Math.round(v * 100)}%`} />
+            <Box sx={{ mt: 1.5, display: "flex", flexDirection: "column", gap: 1.5 }}>
+              <ParamSlider
+                label={t("pitchLabel")}
+                value={params.pitch_shift}
+                min={-24}
+                max={24}
+                step={0.5}
+                onChange={(v) => updateParam("pitch_shift", v)}
+                format={(v) => `${v > 0 ? "+" : ""}${v}`}
+              />
+              <ParamSlider
+                label={t("reverbLabel")}
+                value={params.reverb_mix}
+                min={0}
+                max={1}
+                step={0.01}
+                onChange={(v) => updateParam("reverb_mix", v)}
+                format={(v) => `${Math.round(v * 100)}%`}
+              />
+              <ParamSlider
+                label={t("reverbDecayLabel")}
+                value={params.reverb_decay}
+                min={0}
+                max={0.99}
+                step={0.01}
+                onChange={(v) => updateParam("reverb_decay", v)}
+                format={(v) => `${Math.round(v * 100)}%`}
+              />
+              <ParamSlider
+                label={t("ringModFreqLabel")}
+                value={params.ring_mod_freq}
+                min={0}
+                max={1000}
+                step={1}
+                onChange={(v) => updateParam("ring_mod_freq", v)}
+                format={(v) => (v === 0 ? "Off" : `${v} Hz`)}
+              />
+              <ParamSlider
+                label={t("ringModMixLabel")}
+                value={params.ring_mod_mix}
+                min={0}
+                max={1}
+                step={0.01}
+                onChange={(v) => updateParam("ring_mod_mix", v)}
+                format={(v) => `${Math.round(v * 100)}%`}
+              />
+              <ParamSlider
+                label={t("distortionLabel")}
+                value={params.distortion}
+                min={0}
+                max={1}
+                step={0.01}
+                onChange={(v) => updateParam("distortion", v)}
+                format={(v) => `${Math.round(v * 100)}%`}
+              />
+              <ParamSlider
+                label={t("lowpassLabel")}
+                value={params.lowpass_cutoff}
+                min={200}
+                max={20000}
+                step={100}
+                onChange={(v) => updateParam("lowpass_cutoff", v)}
+                format={(v) =>
+                  v >= 19900 ? "Off" : `${v >= 1000 ? (v / 1000).toFixed(1) + "k" : v} Hz`
+                }
+              />
+              <ParamSlider
+                label={t("highpassLabel")}
+                value={params.highpass_cutoff}
+                min={20}
+                max={2000}
+                step={10}
+                onChange={(v) => updateParam("highpass_cutoff", v)}
+                format={(v) => (v <= 25 ? "Off" : `${v} Hz`)}
+              />
+              <ParamSlider
+                label={t("vibratoRateLabel")}
+                value={params.vibrato_rate}
+                min={0}
+                max={20}
+                step={0.1}
+                onChange={(v) => updateParam("vibrato_rate", v)}
+                format={(v) => (v === 0 ? "Off" : `${v.toFixed(1)} Hz`)}
+              />
+              <ParamSlider
+                label={t("vibratoDepthLabel")}
+                value={params.vibrato_depth}
+                min={0}
+                max={2}
+                step={0.05}
+                onChange={(v) => updateParam("vibrato_depth", v)}
+                format={(v) => `${Math.round(v * 100)}%`}
+              />
+              <ParamSlider
+                label={t("chorusLabel")}
+                value={params.chorus_mix}
+                min={0}
+                max={1}
+                step={0.01}
+                onChange={(v) => updateParam("chorus_mix", v)}
+                format={(v) => `${Math.round(v * 100)}%`}
+              />
+              <ParamSlider
+                label={t("gateLabel")}
+                value={params.gate_threshold}
+                min={0}
+                max={0.1}
+                step={0.001}
+                onChange={(v) => updateParam("gate_threshold", v)}
+                format={(v) => (v === 0 ? "Off" : `${(v * 1000).toFixed(0)}`)}
+              />
+              <ParamSlider
+                label={t("outputGainLabel")}
+                value={params.gain}
+                min={0.1}
+                max={3}
+                step={0.05}
+                onChange={(v) => updateParam("gain", v)}
+                format={(v) => `${Math.round(v * 100)}%`}
+              />
 
               <Divider sx={{ my: 1, opacity: 0.4 }} />
 
@@ -373,27 +464,62 @@ export default function VoiceChangerPanel({ open, onClose }: VoiceChangerPanelPr
                 variant="caption"
                 sx={{
                   fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.1em',
-                  color: 'text.secondary',
-                  fontSize: '0.6rem',
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  color: "text.secondary",
+                  fontSize: "0.6rem",
                   mb: 0.5,
-                  display: 'block',
+                  display: "block",
                 }}
               >
-                {t('eqTitle')}
+                {t("eqTitle")}
               </Typography>
 
-              <ParamSlider label={t('eqSub')} value={params.eq_low} min={-12} max={12} step={0.5}
-                onChange={v => updateParam('eq_low', v)} format={v => `${v > 0 ? '+' : ''}${v} dB`} />
-              <ParamSlider label={t('eqLowMid')} value={params.eq_low_mid} min={-12} max={12} step={0.5}
-                onChange={v => updateParam('eq_low_mid', v)} format={v => `${v > 0 ? '+' : ''}${v} dB`} />
-              <ParamSlider label={t('eqMid')} value={params.eq_mid} min={-12} max={12} step={0.5}
-                onChange={v => updateParam('eq_mid', v)} format={v => `${v > 0 ? '+' : ''}${v} dB`} />
-              <ParamSlider label={t('eqHighMid')} value={params.eq_high_mid} min={-12} max={12} step={0.5}
-                onChange={v => updateParam('eq_high_mid', v)} format={v => `${v > 0 ? '+' : ''}${v} dB`} />
-              <ParamSlider label={t('eqHigh')} value={params.eq_high} min={-12} max={12} step={0.5}
-                onChange={v => updateParam('eq_high', v)} format={v => `${v > 0 ? '+' : ''}${v} dB`} />
+              <ParamSlider
+                label={t("eqSub")}
+                value={params.eq_low}
+                min={-12}
+                max={12}
+                step={0.5}
+                onChange={(v) => updateParam("eq_low", v)}
+                format={(v) => `${v > 0 ? "+" : ""}${v} dB`}
+              />
+              <ParamSlider
+                label={t("eqLowMid")}
+                value={params.eq_low_mid}
+                min={-12}
+                max={12}
+                step={0.5}
+                onChange={(v) => updateParam("eq_low_mid", v)}
+                format={(v) => `${v > 0 ? "+" : ""}${v} dB`}
+              />
+              <ParamSlider
+                label={t("eqMid")}
+                value={params.eq_mid}
+                min={-12}
+                max={12}
+                step={0.5}
+                onChange={(v) => updateParam("eq_mid", v)}
+                format={(v) => `${v > 0 ? "+" : ""}${v} dB`}
+              />
+              <ParamSlider
+                label={t("eqHighMid")}
+                value={params.eq_high_mid}
+                min={-12}
+                max={12}
+                step={0.5}
+                onChange={(v) => updateParam("eq_high_mid", v)}
+                format={(v) => `${v > 0 ? "+" : ""}${v} dB`}
+              />
+              <ParamSlider
+                label={t("eqHigh")}
+                value={params.eq_high}
+                min={-12}
+                max={12}
+                step={0.5}
+                onChange={(v) => updateParam("eq_high", v)}
+                format={(v) => `${v > 0 ? "+" : ""}${v} dB`}
+              />
             </Box>
           </Collapse>
         </Box>
@@ -403,29 +529,35 @@ export default function VoiceChangerPanel({ open, onClose }: VoiceChangerPanelPr
           sx={{
             px: 2.5,
             py: 1,
-            borderTop: '1px solid',
-            borderColor: 'divider',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            borderTop: "1px solid",
+            borderColor: "divider",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
           }}
         >
           <Chip
             icon={micActive ? <MicIcon sx={{ fontSize: 13 }} /> : <MicOff sx={{ fontSize: 13 }} />}
-            label={micActive ? t('micActive') : t('micInactive')}
+            label={micActive ? t("micActive") : t("micInactive")}
             size="small"
-            color={micActive ? 'success' : 'default'}
+            color={micActive ? "success" : "default"}
             variant="outlined"
-            sx={{ fontSize: '0.65rem', fontWeight: 600, height: 24, borderRadius: '8px' }}
+            sx={{ fontSize: "0.65rem", fontWeight: 600, height: 24, borderRadius: "8px" }}
           />
-          {activePreset !== 'none' && (
+          {activePreset !== "none" && (
             <Chip
-              label={t('disable')}
+              label={t("disable")}
               size="small"
               variant="outlined"
               color="error"
-              onClick={() => selectPreset('none')}
-              sx={{ fontSize: '0.65rem', fontWeight: 600, cursor: 'pointer', height: 24, borderRadius: '8px' }}
+              onClick={() => selectPreset("none")}
+              sx={{
+                fontSize: "0.65rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                height: 24,
+                borderRadius: "8px",
+              }}
             />
           )}
         </Box>
@@ -455,11 +587,23 @@ function ParamSlider({
 }) {
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: -0.5 }}>
-        <Typography variant="caption" sx={{ fontWeight: 500, fontSize: '0.68rem', color: 'text.secondary' }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: -0.5 }}>
+        <Typography
+          variant="caption"
+          sx={{ fontWeight: 500, fontSize: "0.68rem", color: "text.secondary" }}
+        >
           {label}
         </Typography>
-        <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '0.68rem', color: 'primary.main', minWidth: 40, textAlign: 'right' }}>
+        <Typography
+          variant="caption"
+          sx={{
+            fontWeight: 700,
+            fontSize: "0.68rem",
+            color: "primary.main",
+            minWidth: 40,
+            textAlign: "right",
+          }}
+        >
           {format(value)}
         </Typography>
       </Box>

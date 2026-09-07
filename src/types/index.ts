@@ -13,8 +13,8 @@ export interface Sound {
   isLooping: boolean;
   trimStart: number;
   trimEnd: number | null;
-  fadeIn: number;   // seconds
-  fadeOut: number;  // seconds
+  fadeIn: number; // seconds
+  fadeOut: number; // seconds
   addedAt: string;
   playCount: number;
   order: number;
@@ -36,7 +36,7 @@ export interface Profile {
 }
 
 export interface AppSettings {
-  theme: 'dark' | 'light';
+  theme: "dark" | "light";
   customSeedColor: string;
   masterVolume: number;
   activeProfileId: string;
@@ -53,7 +53,7 @@ export interface AppSettings {
   piperPath: string;
   piperModel: string;
   discordRpc: boolean;
-  language: 'fr' | 'en';
+  language: "fr" | "en";
 }
 
 export interface AppData {
@@ -61,4 +61,4 @@ export interface AppData {
   profiles: Profile[];
 }
 
-export type ViewMode = 'grid' | 'list' | 'compact';
+export type ViewMode = "grid" | "list" | "compact";

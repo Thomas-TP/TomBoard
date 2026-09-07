@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -21,17 +21,13 @@ import {
   Slider,
   Divider,
   InputAdornment,
-} from '@mui/material';
-import {
-  Close,
-  Keyboard,
-  Backspace,
-} from '@mui/icons-material';
-import { invoke } from '@tauri-apps/api/core';
-import { Sound } from '../../types';
-import { useAppStore } from '../../stores/appStore';
-import WaveformTrimEditor from '../sound/WaveformTrimEditor';
-import { useI18n } from '../../i18n/I18nProvider';
+} from "@mui/material";
+import { Close, Keyboard, Backspace } from "@mui/icons-material";
+import { invoke } from "@tauri-apps/api/core";
+import { Sound } from "../../types";
+import { useAppStore } from "../../stores/appStore";
+import WaveformTrimEditor from "../sound/WaveformTrimEditor";
+import { useI18n } from "../../i18n/I18nProvider";
 
 interface EditSoundDialogProps {
   open: boolean;
@@ -40,32 +36,102 @@ interface EditSoundDialogProps {
 }
 
 const EMOJI_LIST = [
-  '🔊', '🎵', '🎶', '🎤', '🎧', '🎸', '🥁', '🎹', '🎺', '🎷',
-  '🔔', '📢', '💥', '💣', '🔥', '⚡', '✨', '🎉', '🎊', '🎭',
-  '👀', '👋', '👏', '💀', '👻', '😂', '😱', '🤣', '😎', '🤡',
-  '🐸', '🦆', '🐱', '🐶', '🦊', '🐺', '🦁', '🐻', '🐼', '🐵',
-  '🚀', '🏆', '⚽', '🎮', '🕹️', '🗡️', '🛡️', '🏹', '💎', '🪙',
-  '❤️', '💜', '💙', '💚', '💛', '🧡', '🖤', '🤍', '💔', '💖',
+  "🔊",
+  "🎵",
+  "🎶",
+  "🎤",
+  "🎧",
+  "🎸",
+  "🥁",
+  "🎹",
+  "🎺",
+  "🎷",
+  "🔔",
+  "📢",
+  "💥",
+  "💣",
+  "🔥",
+  "⚡",
+  "✨",
+  "🎉",
+  "🎊",
+  "🎭",
+  "👀",
+  "👋",
+  "👏",
+  "💀",
+  "👻",
+  "😂",
+  "😱",
+  "🤣",
+  "😎",
+  "🤡",
+  "🐸",
+  "🦆",
+  "🐱",
+  "🐶",
+  "🦊",
+  "🐺",
+  "🦁",
+  "🐻",
+  "🐼",
+  "🐵",
+  "🚀",
+  "🏆",
+  "⚽",
+  "🎮",
+  "🕹️",
+  "🗡️",
+  "🛡️",
+  "🏹",
+  "💎",
+  "🪙",
+  "❤️",
+  "💜",
+  "💙",
+  "💚",
+  "💛",
+  "🧡",
+  "🖤",
+  "🤍",
+  "💔",
+  "💖",
 ];
 
 const COLOR_PALETTE = [
-  '#6750A4', '#D32F2F', '#F57C00', '#388E3C', '#1976D2',
-  '#7B1FA2', '#C2185B', '#00796B', '#455A64', '#E64A19',
-  '#5C6BC0', '#26A69A', '#EC407A', '#AB47BC', '#FFA726',
-  '#42A5F5', '#66BB6A', '#EF5350', '#8D6E63', '#78909C',
+  "#6750A4",
+  "#D32F2F",
+  "#F57C00",
+  "#388E3C",
+  "#1976D2",
+  "#7B1FA2",
+  "#C2185B",
+  "#00796B",
+  "#455A64",
+  "#E64A19",
+  "#5C6BC0",
+  "#26A69A",
+  "#EC407A",
+  "#AB47BC",
+  "#FFA726",
+  "#42A5F5",
+  "#66BB6A",
+  "#EF5350",
+  "#8D6E63",
+  "#78909C",
 ];
 
 export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialogProps) {
-  const [name, setName] = useState('');
-  const [icon, setIcon] = useState('🔊');
-  const [color, setColor] = useState('#6750A4');
-  const [category, setCategory] = useState('all');
+  const [name, setName] = useState("");
+  const [icon, setIcon] = useState("🔊");
+  const [color, setColor] = useState("#6750A4");
+  const [category, setCategory] = useState("all");
   const [volume, setVolume] = useState(1);
   const [speed, setSpeed] = useState(1);
   const [isLooping, setIsLooping] = useState(false);
   const [hotkey, setHotkey] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
+  const [tagInput, setTagInput] = useState("");
   const [recordingHotkey, setRecordingHotkey] = useState(false);
   const [trimStart, setTrimStart] = useState(0);
   const [trimEnd, setTrimEnd] = useState<number | null>(null);
@@ -76,9 +142,9 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
   const [emojiAnchor, setEmojiAnchor] = useState<HTMLElement | null>(null);
   const [colorAnchor, setColorAnchor] = useState<HTMLElement | null>(null);
 
-  const updateSound = useAppStore(s => s.updateSound);
-  const data = useAppStore(s => s.data);
-  const profile = data?.profiles.find(p => p.id === data.settings.activeProfileId);
+  const updateSound = useAppStore((s) => s.updateSound);
+  const data = useAppStore((s) => s.data);
+  const profile = data?.profiles.find((p) => p.id === data.settings.activeProfileId);
   const categories = profile?.categories ?? [];
   const { t } = useI18n();
 
@@ -110,7 +176,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
     let finalTrimEnd = trimEnd;
     if (!trimApplied && (trimStart > 0.01 || trimEnd !== null)) {
       try {
-        const newPath = await invoke<string>('trim_audio', {
+        const newPath = await invoke<string>("trim_audio", {
           filePath: sound.filePath,
           trimStart,
           trimEndOpt: trimEnd,
@@ -120,7 +186,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
         finalTrimEnd = null;
         setTrimApplied(true);
       } catch (e) {
-        console.error('Trim failed:', e);
+        console.error("Trim failed:", e);
         // Continue without trim applied to file
       }
     }
@@ -145,28 +211,31 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
     onClose();
   };
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (!recordingHotkey) return;
-    e.preventDefault();
-    e.stopPropagation();
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (!recordingHotkey) return;
+      e.preventDefault();
+      e.stopPropagation();
 
-    const parts: string[] = [];
-    if (e.ctrlKey) parts.push('Ctrl');
-    if (e.shiftKey) parts.push('Shift');
-    if (e.altKey) parts.push('Alt');
+      const parts: string[] = [];
+      if (e.ctrlKey) parts.push("Ctrl");
+      if (e.shiftKey) parts.push("Shift");
+      if (e.altKey) parts.push("Alt");
 
-    const key = e.key;
-    if (!['Control', 'Shift', 'Alt', 'Meta'].includes(key)) {
-      parts.push(key.length === 1 ? key.toUpperCase() : key);
-      setHotkey(parts.join('+'));
-      setRecordingHotkey(false);
-    }
-  }, [recordingHotkey]);
+      const key = e.key;
+      if (!["Control", "Shift", "Alt", "Meta"].includes(key)) {
+        parts.push(key.length === 1 ? key.toUpperCase() : key);
+        setHotkey(parts.join("+"));
+        setRecordingHotkey(false);
+      }
+    },
+    [recordingHotkey],
+  );
 
   useEffect(() => {
     if (recordingHotkey) {
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
     }
   }, [recordingHotkey, handleKeyDown]);
 
@@ -175,7 +244,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
     if (tag && !tags.includes(tag)) {
       setTags([...tags, tag]);
     }
-    setTagInput('');
+    setTagInput("");
   };
 
   return (
@@ -185,12 +254,12 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
       maxWidth="sm"
       fullWidth
       slotProps={{
-        paper: { sx: { borderRadius: 3, bgcolor: 'background.paper' } },
+        paper: { sx: { borderRadius: 3, bgcolor: "background.paper" } },
       }}
     >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem' }}>
-          {t('editSound')}
+      <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, fontSize: "1rem" }}>
+          {t("editSound")}
         </Typography>
         <IconButton onClick={onClose} size="small">
           <Close />
@@ -198,26 +267,26 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
       </DialogTitle>
 
       <DialogContent>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, mt: 1 }}>
           {/* Icon & Color row */}
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
             {/* Icon selector */}
             <Box
-              onClick={e => setEmojiAnchor(e.currentTarget)}
+              onClick={(e) => setEmojiAnchor(e.currentTarget)}
               sx={{
                 width: 64,
                 height: 64,
                 borderRadius: 3,
-                bgcolor: color + '22',
+                bgcolor: color + "22",
                 border: 2,
                 borderColor: color,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                fontSize: '2rem',
-                transition: 'all 0.2s',
-                '&:hover': { transform: 'scale(1.05)' },
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                fontSize: "2rem",
+                transition: "all 0.2s",
+                "&:hover": { transform: "scale(1.05)" },
               }}
             >
               {icon}
@@ -225,9 +294,9 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
 
             {/* Name */}
             <TextField
-              label={t('soundName')}
+              label={t("soundName")}
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={(e) => setName(e.target.value)}
               fullWidth
               variant="outlined"
               size="small"
@@ -235,18 +304,18 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
 
             {/* Color selector */}
             <Box
-              onClick={e => setColorAnchor(e.currentTarget)}
+              onClick={(e) => setColorAnchor(e.currentTarget)}
               sx={{
                 width: 40,
                 height: 40,
                 borderRadius: 2,
                 bgcolor: color,
-                cursor: 'pointer',
+                cursor: "pointer",
                 border: 2,
-                borderColor: 'divider',
+                borderColor: "divider",
                 flexShrink: 0,
-                transition: 'transform 0.2s',
-                '&:hover': { transform: 'scale(1.1)' },
+                transition: "transform 0.2s",
+                "&:hover": { transform: "scale(1.1)" },
               }}
             />
           </Box>
@@ -256,28 +325,31 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
             open={Boolean(emojiAnchor)}
             anchorEl={emojiAnchor}
             onClose={() => setEmojiAnchor(null)}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+            anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
           >
             <Box sx={{ p: 2, width: 280 }}>
               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                {t('chooseIcon')}
+                {t("chooseIcon")}
               </Typography>
               <Grid container spacing={0.5}>
-                {EMOJI_LIST.map(emoji => (
-                  <Grid key={emoji} size={{ xs: 'auto' }}>
+                {EMOJI_LIST.map((emoji) => (
+                  <Grid key={emoji} size={{ xs: "auto" }}>
                     <Box
-                      onClick={() => { setIcon(emoji); setEmojiAnchor(null); }}
+                      onClick={() => {
+                        setIcon(emoji);
+                        setEmojiAnchor(null);
+                      }}
                       sx={{
                         width: 36,
                         height: 36,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                         borderRadius: 1,
-                        cursor: 'pointer',
-                        fontSize: '1.2rem',
-                        '&:hover': { bgcolor: 'action.hover' },
-                        bgcolor: icon === emoji ? 'primary.main' : 'transparent',
+                        cursor: "pointer",
+                        fontSize: "1.2rem",
+                        "&:hover": { bgcolor: "action.hover" },
+                        bgcolor: icon === emoji ? "primary.main" : "transparent",
                       }}
                     >
                       {emoji}
@@ -293,26 +365,29 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
             open={Boolean(colorAnchor)}
             anchorEl={colorAnchor}
             onClose={() => setColorAnchor(null)}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
           >
             <Box sx={{ p: 2, width: 240 }}>
               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                {t('chooseColor')}
+                {t("chooseColor")}
               </Typography>
               <Grid container spacing={0.5}>
-                {COLOR_PALETTE.map(c => (
-                  <Grid key={c} size={{ xs: 'auto' }}>
+                {COLOR_PALETTE.map((c) => (
+                  <Grid key={c} size={{ xs: "auto" }}>
                     <Box
-                      onClick={() => { setColor(c); setColorAnchor(null); }}
+                      onClick={() => {
+                        setColor(c);
+                        setColorAnchor(null);
+                      }}
                       sx={{
                         width: 32,
                         height: 32,
                         borderRadius: 1,
                         bgcolor: c,
-                        cursor: 'pointer',
-                        border: color === c ? '2px solid white' : '2px solid transparent',
-                        '&:hover': { transform: 'scale(1.15)' },
-                        transition: 'transform 0.15s',
+                        cursor: "pointer",
+                        border: color === c ? "2px solid white" : "2px solid transparent",
+                        "&:hover": { transform: "scale(1.15)" },
+                        transition: "transform 0.15s",
                       }}
                     />
                   </Grid>
@@ -323,13 +398,13 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
 
           {/* Category */}
           <FormControl size="small" fullWidth>
-            <InputLabel>{t('category')}</InputLabel>
+            <InputLabel>{t("category")}</InputLabel>
             <Select
               value={category}
-              onChange={e => setCategory(e.target.value)}
-              label={t('category')}
+              onChange={(e) => setCategory(e.target.value)}
+              label={t("category")}
             >
-              {categories.map(cat => (
+              {categories.map((cat) => (
                 <MenuItem key={cat.id} value={cat.id}>
                   {cat.name}
                 </MenuItem>
@@ -342,7 +417,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
           {/* Volume */}
           <Box>
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-              {t('volume')} — {Math.round(volume * 100)}%
+              {t("volume")} — {Math.round(volume * 100)}%
             </Typography>
             <Slider
               value={volume}
@@ -359,13 +434,13 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
             control={
               <Switch
                 checked={isLooping}
-                onChange={e => setIsLooping(e.target.checked)}
+                onChange={(e) => setIsLooping(e.target.checked)}
                 color="primary"
               />
             }
             label={
               <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                {t('loopPlayback')}
+                {t("loopPlayback")}
               </Typography>
             }
           />
@@ -373,7 +448,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
           {/* Speed control */}
           <Box>
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-              {t('speed')} — {speed.toFixed(2)}x
+              {t("speed")} — {speed.toFixed(2)}x
             </Typography>
             <Slider
               value={speed}
@@ -383,10 +458,10 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
               step={0.05}
               size="small"
               marks={[
-                { value: 0.5, label: '0.5x' },
-                { value: 1, label: '1x' },
-                { value: 1.5, label: '1.5x' },
-                { value: 2, label: '2x' },
+                { value: 0.5, label: "0.5x" },
+                { value: 1, label: "1x" },
+                { value: 1.5, label: "1.5x" },
+                { value: 2, label: "2x" },
               ]}
             />
           </Box>
@@ -394,7 +469,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
           {/* Fade in */}
           <Box>
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-              {t('fadeIn')} — {fadeIn.toFixed(1)}s
+              {t("fadeIn")} — {fadeIn.toFixed(1)}s
             </Typography>
             <Slider
               value={fadeIn}
@@ -404,9 +479,9 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
               step={0.1}
               size="small"
               marks={[
-                { value: 0, label: '0s' },
-                { value: 5, label: '5s' },
-                { value: 10, label: '10s' },
+                { value: 0, label: "0s" },
+                { value: 5, label: "5s" },
+                { value: 10, label: "10s" },
               ]}
             />
           </Box>
@@ -414,7 +489,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
           {/* Fade out */}
           <Box>
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-              {t('fadeOut')} — {fadeOut.toFixed(1)}s
+              {t("fadeOut")} — {fadeOut.toFixed(1)}s
             </Typography>
             <Slider
               value={fadeOut}
@@ -424,9 +499,9 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
               step={0.1}
               size="small"
               marks={[
-                { value: 0, label: '0s' },
-                { value: 5, label: '5s' },
-                { value: 10, label: '10s' },
+                { value: 0, label: "0s" },
+                { value: 5, label: "5s" },
+                { value: 10, label: "10s" },
               ]}
             />
           </Box>
@@ -436,11 +511,11 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
           {/* Hotkey */}
           <Box>
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-              {t('hotkey')}
+              {t("hotkey")}
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
               <TextField
-                value={recordingHotkey ? t('pressKey') : (hotkey ?? t('noHotkey'))}
+                value={recordingHotkey ? t("pressKey") : (hotkey ?? t("noHotkey"))}
                 size="small"
                 fullWidth
                 slotProps={{
@@ -448,19 +523,19 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
                     readOnly: true,
                     startAdornment: (
                       <InputAdornment position="start">
-                        <Keyboard sx={{ fontSize: 18, color: 'text.secondary' }} />
+                        <Keyboard sx={{ fontSize: 18, color: "text.secondary" }} />
                       </InputAdornment>
                     ),
                   },
                 }}
                 onClick={() => setRecordingHotkey(true)}
                 sx={{
-                  cursor: 'pointer',
-                  '& .MuiInputBase-input': { cursor: 'pointer' },
+                  cursor: "pointer",
+                  "& .MuiInputBase-input": { cursor: "pointer" },
                   ...(recordingHotkey && {
-                    '& .MuiOutlinedInput-root': {
-                      borderColor: 'primary.main',
-                      boxShadow: '0 0 0 2px rgba(103, 80, 164, 0.3)',
+                    "& .MuiOutlinedInput-root": {
+                      borderColor: "primary.main",
+                      boxShadow: "0 0 0 2px rgba(103, 80, 164, 0.3)",
                     },
                   }),
                 }}
@@ -468,7 +543,10 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
               {hotkey && (
                 <IconButton
                   size="small"
-                  onClick={() => { setHotkey(null); setRecordingHotkey(false); }}
+                  onClick={() => {
+                    setHotkey(null);
+                    setRecordingHotkey(false);
+                  }}
                 >
                   <Backspace sx={{ fontSize: 18 }} />
                 </IconButton>
@@ -479,25 +557,28 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
           {/* Tags */}
           <Box>
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-              {t('tags')}
+              {t("tags")}
             </Typography>
-            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 1 }}>
-              {tags.map(tag => (
+            <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mb: 1 }}>
+              {tags.map((tag) => (
                 <Chip
                   key={tag}
                   label={tag}
                   size="small"
-                  onDelete={() => setTags(tags.filter(t => t !== tag))}
+                  onDelete={() => setTags(tags.filter((t) => t !== tag))}
                   sx={{ borderRadius: 2 }}
                 />
               ))}
             </Box>
             <TextField
-              placeholder={t('addTag')}
+              placeholder={t("addTag")}
               value={tagInput}
-              onChange={e => setTagInput(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') { e.preventDefault(); addTag(); }
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addTag();
+                }
               }}
               size="small"
               fullWidth
@@ -509,14 +590,18 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
           {/* Waveform trim editor */}
           <Box>
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-              {t('trimSound')}
+              {t("trimSound")}
             </Typography>
             {sound?.filePath && (
               <WaveformTrimEditor
                 filePath={sound.filePath}
                 trimStart={trimStart}
                 trimEnd={trimEnd}
-                onChange={(s, e) => { setTrimStart(s); setTrimEnd(e); setTrimApplied(false); }}
+                onChange={(s, e) => {
+                  setTrimStart(s);
+                  setTrimEnd(e);
+                  setTrimApplied(false);
+                }}
               />
             )}
           </Box>
@@ -525,7 +610,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
 
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} color="inherit">
-          {t('cancel')}
+          {t("cancel")}
         </Button>
         <Button
           onClick={handleSave}
@@ -533,7 +618,7 @@ export default function EditSoundDialog({ open, onClose, sound }: EditSoundDialo
           disabled={!name.trim()}
           sx={{ borderRadius: 3, px: 3 }}
         >
-          {t('save')}
+          {t("save")}
         </Button>
       </DialogActions>
     </Dialog>

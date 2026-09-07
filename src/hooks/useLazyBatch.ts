@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from "react";
 
 const BATCH_SIZE = 48;
 
@@ -20,7 +20,7 @@ export function useLazyBatch<T>(items: T[]): {
   }, [items.length]);
 
   const loadMore = useCallback(() => {
-    setCount(prev => Math.min(prev + BATCH_SIZE, items.length));
+    setCount((prev) => Math.min(prev + BATCH_SIZE, items.length));
   }, [items.length]);
 
   useEffect(() => {
@@ -28,12 +28,12 @@ export function useLazyBatch<T>(items: T[]): {
     if (!sentinel) return;
 
     const observer = new IntersectionObserver(
-      entries => {
+      (entries) => {
         if (entries[0]?.isIntersecting) {
           loadMore();
         }
       },
-      { rootMargin: '200px' }
+      { rootMargin: "200px" },
     );
 
     observer.observe(sentinel);

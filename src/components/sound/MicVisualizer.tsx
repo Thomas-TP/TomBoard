@@ -1,9 +1,9 @@
-import { useRef, useEffect, useCallback, useState } from 'react';
-import { Box, Typography, Tooltip, IconButton } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
-import { GraphicEq, BarChart } from '@mui/icons-material';
+import { useRef, useEffect, useCallback, useState } from "react";
+import { Box, Typography, Tooltip, IconButton } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import { GraphicEq, BarChart } from "@mui/icons-material";
 
-type Mode = 'spectrum' | 'spectrogram';
+type Mode = "spectrum" | "spectrogram";
 
 interface MicVisualizerProps {
   active: boolean;
@@ -18,13 +18,13 @@ export default function MicVisualizer({ active }: MicVisualizerProps) {
   const streamRef = useRef<MediaStream | null>(null);
   const animRef = useRef<number>(0);
   const spectrogramDataRef = useRef<Uint8Array[]>([]);
-  const [mode, setMode] = useState<Mode>('spectrum');
+  const [mode, setMode] = useState<Mode>("spectrum");
   const [peakDb, setPeakDb] = useState(-Infinity);
 
   const cleanup = useCallback(() => {
     cancelAnimationFrame(animRef.current);
     sourceRef.current?.disconnect();
-    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current?.getTracks().forEach((t) => t.stop());
     audioCtxRef.current?.close().catch(() => {});
     analyserRef.current = null;
     audioCtxRef.current = null;
@@ -40,7 +40,7 @@ export default function MicVisualizer({ active }: MicVisualizerProps) {
       // Clear canvas
       const canvas = canvasRef.current;
       if (canvas) {
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext("2d");
         if (ctx) {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
@@ -53,7 +53,10 @@ export default function MicVisualizer({ active }: MicVisualizerProps) {
     const init = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
         streamRef.current = stream;
 
         const audioCtx = new AudioContext();
@@ -93,7 +96,7 @@ export default function MicVisualizer({ active }: MicVisualizerProps) {
         animRef.current = requestAnimationFrame(draw);
         return;
       }
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
       const w = canvas.width;
@@ -114,7 +117,7 @@ export default function MicVisualizer({ active }: MicVisualizerProps) {
       const freqData = new Uint8Array(bufLen);
       analyser.getByteFrequencyData(freqData);
 
-      if (mode === 'spectrum') {
+      if (mode === "spectrum") {
         // Real-time frequency spectrum bars
         ctx.clearRect(0, 0, w, h);
 
@@ -134,9 +137,8 @@ export default function MicVisualizer({ active }: MicVisualizerProps) {
           // Gradient from primary to hot
           const hue = 260 - val * 40; // purple -> blue-violet
           const light = 50 + val * 15;
-          ctx.fillStyle = val > 0.7
-            ? `hsl(${hue - 30}, 90%, ${light}%)`
-            : `hsl(${hue}, 70%, ${light}%)`;
+          ctx.fillStyle =
+            val > 0.7 ? `hsl(${hue - 30}, 90%, ${light}%)` : `hsl(${hue}, 70%, ${light}%)`;
           ctx.fillRect(x + gap / 2, h - barH, barW - gap, barH);
         }
       } else {
@@ -177,55 +179,59 @@ export default function MicVisualizer({ active }: MicVisualizerProps) {
 
   // VU meter bar color
   const vuPct = active && isFinite(peakDb) ? Math.max(0, Math.min(1, (peakDb + 60) / 60)) : 0;
-  const vuColor = vuPct > 0.85 ? '#f44336' : vuPct > 0.6 ? '#ff9800' : '#4caf50';
-  const vuLabel = isFinite(peakDb) ? `${peakDb.toFixed(1)} dB` : '—';
+  const vuColor = vuPct > 0.85 ? "#f44336" : vuPct > 0.6 ? "#ff9800" : "#4caf50";
+  const vuLabel = isFinite(peakDb) ? `${peakDb.toFixed(1)} dB` : "—";
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
       {/* Canvas + mode toggle */}
-      <Box sx={{ position: 'relative' }}>
+      <Box sx={{ position: "relative" }}>
         <canvas
           ref={canvasRef}
           width={320}
           height={80}
           style={{
-            width: '100%',
+            width: "100%",
             height: 80,
             borderRadius: 10,
-            background: theme.palette.mode === 'dark'
-              ? 'rgba(255, 255, 255, 0.03)'
-              : 'rgba(0, 0, 0, 0.04)',
+            background:
+              theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.04)",
             border: `1px solid ${theme.palette.divider}`,
           }}
         />
-        <Tooltip title={mode === 'spectrum' ? 'Spectrogramme' : 'Spectre'} placement="left">
+        <Tooltip title={mode === "spectrum" ? "Spectrogramme" : "Spectre"} placement="left">
           <IconButton
             size="small"
             onClick={() => {
               spectrogramDataRef.current = [];
-              setMode(m => m === 'spectrum' ? 'spectrogram' : 'spectrum');
+              setMode((m) => (m === "spectrum" ? "spectrogram" : "spectrum"));
             }}
             sx={{
-              position: 'absolute',
+              position: "absolute",
               top: 4,
               right: 4,
               width: 22,
               height: 22,
-              bgcolor: 'rgba(0,0,0,0.35)',
-              color: 'white',
-              '&:hover': { bgcolor: 'rgba(0,0,0,0.55)' },
+              bgcolor: "rgba(0,0,0,0.35)",
+              color: "white",
+              "&:hover": { bgcolor: "rgba(0,0,0,0.55)" },
             }}
           >
-            {mode === 'spectrum'
-              ? <GraphicEq sx={{ fontSize: 13 }} />
-              : <BarChart sx={{ fontSize: 13 }} />}
+            {mode === "spectrum" ? (
+              <GraphicEq sx={{ fontSize: 13 }} />
+            ) : (
+              <BarChart sx={{ fontSize: 13 }} />
+            )}
           </IconButton>
         </Tooltip>
       </Box>
 
       {/* VU meter */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Typography variant="caption" sx={{ fontSize: '0.6rem', fontWeight: 600, color: 'text.secondary', minWidth: 20 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Typography
+          variant="caption"
+          sx={{ fontSize: "0.6rem", fontWeight: 600, color: "text.secondary", minWidth: 20 }}
+        >
           VU
         </Typography>
         <Box
@@ -233,31 +239,32 @@ export default function MicVisualizer({ active }: MicVisualizerProps) {
             flex: 1,
             height: 6,
             borderRadius: 3,
-            bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-            overflow: 'hidden',
-            position: 'relative',
+            bgcolor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
+            overflow: "hidden",
+            position: "relative",
           }}
         >
           <Box
             sx={{
               width: `${vuPct * 100}%`,
-              height: '100%',
+              height: "100%",
               borderRadius: 3,
               bgcolor: vuColor,
-              transition: 'width 0.05s linear',
+              transition: "width 0.05s linear",
             }}
           />
           {/* Peak markers */}
-          {[0.6, 0.85].map(t => (
+          {[0.6, 0.85].map((t) => (
             <Box
               key={t}
               sx={{
-                position: 'absolute',
+                position: "absolute",
                 left: `${t * 100}%`,
                 top: 0,
                 width: 1,
-                height: '100%',
-                bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)',
+                height: "100%",
+                bgcolor:
+                  theme.palette.mode === "dark" ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)",
               }}
             />
           ))}
@@ -265,15 +272,15 @@ export default function MicVisualizer({ active }: MicVisualizerProps) {
         <Typography
           variant="caption"
           sx={{
-            fontSize: '0.58rem',
+            fontSize: "0.58rem",
             fontWeight: 700,
-            fontFamily: 'monospace',
-            color: active ? vuColor : 'text.disabled',
+            fontFamily: "monospace",
+            color: active ? vuColor : "text.disabled",
             minWidth: 42,
-            textAlign: 'right',
+            textAlign: "right",
           }}
         >
-          {active ? vuLabel : '—'}
+          {active ? vuLabel : "—"}
         </Typography>
       </Box>
     </Box>

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 
 export interface UpdateInfo {
   version: string;
@@ -14,8 +14,8 @@ export function useUpdater() {
     // Check for updates once after a short delay (avoids slowing startup)
     const timer = setTimeout(async () => {
       try {
-        const result = await invoke<string>('check_for_updates');
-        if (result && result !== 'up-to-date') {
+        const result = await invoke<string>("check_for_updates");
+        if (result && result !== "up-to-date") {
           setUpdateAvailable({ version: result });
         }
       } catch {
@@ -30,7 +30,7 @@ export function useUpdater() {
     setUpdating(true);
     setUpdateError(null);
     try {
-      await invoke('download_and_apply_update');
+      await invoke("download_and_apply_update");
       // App will restart automatically after apply_updates_and_restart
     } catch (e) {
       setUpdateError(String(e));

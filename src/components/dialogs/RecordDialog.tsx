@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -14,18 +14,11 @@ import {
   Select,
   MenuItem,
   LinearProgress,
-} from '@mui/material';
-import {
-  Close,
-  FiberManualRecord,
-  Stop,
-  PlayArrow,
-  Delete,
-  Mic,
-} from '@mui/icons-material';
-import { invoke } from '@tauri-apps/api/core';
-import { useAppStore } from '../../stores/appStore';
-import { useI18n } from '../../i18n/I18nProvider';
+} from "@mui/material";
+import { Close, FiberManualRecord, Stop, PlayArrow, Delete, Mic } from "@mui/icons-material";
+import { invoke } from "@tauri-apps/api/core";
+import { useAppStore } from "../../stores/appStore";
+import { useI18n } from "../../i18n/I18nProvider";
 
 interface RecordDialogProps {
   open: boolean;
@@ -33,9 +26,9 @@ interface RecordDialogProps {
 }
 
 export default function RecordDialog({ open, onClose }: RecordDialogProps) {
-  const [name, setName] = useState('');
+  const [name, setName] = useState("");
   const { t } = useI18n();
-  const [category, setCategory] = useState('all');
+  const [category, setCategory] = useState("all");
   const [recording, setRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -51,19 +44,19 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animFrameRef = useRef<number | null>(null);
 
-  const data = useAppStore(s => s.data);
-  const loadData = useAppStore(s => s.loadData);
-  const profile = data?.profiles.find(p => p.id === data.settings.activeProfileId);
+  const data = useAppStore((s) => s.data);
+  const loadData = useAppStore((s) => s.loadData);
+  const profile = data?.profiles.find((p) => p.id === data.settings.activeProfileId);
   const categories = profile?.categories ?? [];
 
   const cleanup = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     if (audioUrl) URL.revokeObjectURL(audioUrl);
-    if (mediaRecorderRef.current?.state === 'recording') {
+    if (mediaRecorderRef.current?.state === "recording") {
       mediaRecorderRef.current.stop();
     }
-    mediaRecorderRef.current?.stream?.getTracks().forEach(t => t.stop());
+    mediaRecorderRef.current?.stream?.getTracks().forEach((t) => t.stop());
   }, [audioUrl]);
 
   useEffect(() => {
@@ -73,8 +66,8 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
       setAudioBlob(null);
       setAudioUrl(null);
       setDuration(0);
-      setName('');
-      setCategory('all');
+      setName("");
+      setCategory("all");
       setPlaying(false);
       setLevel(0);
     }
@@ -92,7 +85,7 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
       source.connect(analyser);
       analyserRef.current = analyser;
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -101,11 +94,11 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
         setAudioBlob(blob);
         const url = URL.createObjectURL(blob);
         setAudioUrl(url);
-        stream.getTracks().forEach(t => t.stop());
+        stream.getTracks().forEach((t) => t.stop());
         audioCtx.close();
       };
 
@@ -132,15 +125,17 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
       updateLevel();
 
       if (!name) {
-        setName(`${t('recording')} ${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`);
+        setName(
+          `${t("recording")} ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`,
+        );
       }
     } catch (e) {
-      console.error('Failed to start recording:', e);
+      console.error("Failed to start recording:", e);
     }
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current?.state === 'recording') {
+    if (mediaRecorderRef.current?.state === "recording") {
       mediaRecorderRef.current.stop();
     }
     if (timerRef.current) clearInterval(timerRef.current);
@@ -184,7 +179,7 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
       const wavData = encodeWav(audioBuffer);
       const wavArray = Array.from(new Uint8Array(wavData));
 
-      await invoke('save_recording', {
+      await invoke("save_recording", {
         audioData: wavArray,
         name: name.trim(),
         category,
@@ -192,7 +187,7 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
       await loadData();
       onClose();
     } catch (e) {
-      console.error('Failed to save recording:', e);
+      console.error("Failed to save recording:", e);
     } finally {
       setSaving(false);
     }
@@ -201,7 +196,7 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
   const formatDuration = (s: number) => {
     const mins = Math.floor(s / 60);
     const secs = s % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   return (
@@ -211,12 +206,15 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
       maxWidth="sm"
       fullWidth
       slotProps={{
-        paper: { sx: { borderRadius: 4, bgcolor: 'background.paper' } },
+        paper: { sx: { borderRadius: 4, bgcolor: "background.paper" } },
       }}
     >
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Mic sx={{ fontSize: 22 }} /> {t('recordSound')}
+      <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Typography
+          variant="h6"
+          sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 0.5 }}
+        >
+          <Mic sx={{ fontSize: 22 }} /> {t("recordSound")}
         </Typography>
         <IconButton onClick={onClose} size="small" disabled={recording}>
           <Close />
@@ -224,37 +222,37 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
       </DialogTitle>
 
       <DialogContent>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, mt: 1 }}>
           {/* Recording controls */}
           <Box
             sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
               gap: 2,
               py: 3,
               borderRadius: 3,
-              bgcolor: recording ? 'error.dark' : 'action.hover',
-              transition: 'all 0.3s',
+              bgcolor: recording ? "error.dark" : "action.hover",
+              transition: "all 0.3s",
             }}
           >
             {recording ? (
               <>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <Box
                     sx={{
                       width: 12,
                       height: 12,
-                      borderRadius: '50%',
-                      bgcolor: 'error.main',
-                      animation: 'pulse 1s ease-in-out infinite',
-                      '@keyframes pulse': {
-                        '0%, 100%': { opacity: 1 },
-                        '50%': { opacity: 0.3 },
+                      borderRadius: "50%",
+                      bgcolor: "error.main",
+                      animation: "pulse 1s ease-in-out infinite",
+                      "@keyframes pulse": {
+                        "0%, 100%": { opacity: 1 },
+                        "50%": { opacity: 0.3 },
                       },
                     }}
                   />
-                  <Typography variant="h4" sx={{ fontFamily: 'monospace', fontWeight: 700 }}>
+                  <Typography variant="h4" sx={{ fontFamily: "monospace", fontWeight: 700 }}>
                     {formatDuration(duration)}
                   </Typography>
                 </Box>
@@ -264,13 +262,13 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
                   variant="determinate"
                   value={level * 100}
                   sx={{
-                    width: '80%',
+                    width: "80%",
                     height: 8,
                     borderRadius: 4,
-                    bgcolor: 'rgba(255,255,255,0.1)',
-                    '& .MuiLinearProgress-bar': {
-                      bgcolor: level > 0.7 ? 'error.light' : 'success.main',
-                      transition: 'none',
+                    bgcolor: "rgba(255,255,255,0.1)",
+                    "& .MuiLinearProgress-bar": {
+                      bgcolor: level > 0.7 ? "error.light" : "success.main",
+                      transition: "none",
                     },
                   }}
                 />
@@ -278,11 +276,11 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
                 <IconButton
                   onClick={stopRecording}
                   sx={{
-                    bgcolor: 'error.main',
-                    color: 'white',
+                    bgcolor: "error.main",
+                    color: "white",
                     width: 56,
                     height: 56,
-                    '&:hover': { bgcolor: 'error.dark' },
+                    "&:hover": { bgcolor: "error.dark" },
                   }}
                 >
                   <Stop sx={{ fontSize: 32 }} />
@@ -291,15 +289,15 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
             ) : audioBlob ? (
               <>
                 <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                  {t('recordingDone')} {formatDuration(duration)}
+                  {t("recordingDone")} {formatDuration(duration)}
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 1 }}>
+                <Box sx={{ display: "flex", gap: 1 }}>
                   <IconButton
                     onClick={playPreview}
                     sx={{
-                      bgcolor: playing ? 'primary.dark' : 'primary.main',
-                      color: 'white',
-                      '&:hover': { bgcolor: 'primary.dark' },
+                      bgcolor: playing ? "primary.dark" : "primary.main",
+                      color: "white",
+                      "&:hover": { bgcolor: "primary.dark" },
                     }}
                   >
                     {playing ? <Stop /> : <PlayArrow />}
@@ -307,9 +305,9 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
                   <IconButton
                     onClick={discardRecording}
                     sx={{
-                      bgcolor: 'error.main',
-                      color: 'white',
-                      '&:hover': { bgcolor: 'error.dark' },
+                      bgcolor: "error.main",
+                      color: "white",
+                      "&:hover": { bgcolor: "error.dark" },
                     }}
                   >
                     <Delete />
@@ -319,16 +317,16 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
             ) : (
               <>
                 <Typography variant="body2" color="text.secondary">
-                  {t('clickToStartRecording')}
+                  {t("clickToStartRecording")}
                 </Typography>
                 <IconButton
                   onClick={startRecording}
                   sx={{
-                    bgcolor: 'error.main',
-                    color: 'white',
+                    bgcolor: "error.main",
+                    color: "white",
                     width: 56,
                     height: 56,
-                    '&:hover': { bgcolor: 'error.dark' },
+                    "&:hover": { bgcolor: "error.dark" },
                   }}
                 >
                   <FiberManualRecord sx={{ fontSize: 32 }} />
@@ -339,22 +337,22 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
 
           {/* Name */}
           <TextField
-            label={t('recordingName')}
+            label={t("recordingName")}
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={(e) => setName(e.target.value)}
             fullWidth
             size="small"
           />
 
           {/* Category */}
           <FormControl size="small" fullWidth>
-            <InputLabel>{t('category')}</InputLabel>
+            <InputLabel>{t("category")}</InputLabel>
             <Select
               value={category}
-              onChange={e => setCategory(e.target.value)}
-              label={t('category')}
+              onChange={(e) => setCategory(e.target.value)}
+              label={t("category")}
             >
-              {categories.map(cat => (
+              {categories.map((cat) => (
                 <MenuItem key={cat.id} value={cat.id}>
                   {cat.name}
                 </MenuItem>
@@ -366,7 +364,7 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
 
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} color="inherit" disabled={recording}>
-          {t('cancel')}
+          {t("cancel")}
         </Button>
         <Button
           onClick={handleSave}
@@ -374,7 +372,7 @@ export default function RecordDialog({ open, onClose }: RecordDialogProps) {
           disabled={!audioBlob || !name.trim() || saving || recording}
           sx={{ borderRadius: 3, px: 3 }}
         >
-          {saving ? t('saving') : t('save')}
+          {saving ? t("saving") : t("save")}
         </Button>
       </DialogActions>
     </Dialog>
@@ -402,10 +400,10 @@ function encodeWav(audioBuffer: AudioBuffer): ArrayBuffer {
   const view = new DataView(buffer);
 
   // WAV header
-  writeString(view, 0, 'RIFF');
+  writeString(view, 0, "RIFF");
   view.setUint32(4, 36 + dataSize, true);
-  writeString(view, 8, 'WAVE');
-  writeString(view, 12, 'fmt ');
+  writeString(view, 8, "WAVE");
+  writeString(view, 12, "fmt ");
   view.setUint32(16, 16, true);
   view.setUint16(20, format, true);
   view.setUint16(22, numChannels, true);
@@ -413,14 +411,14 @@ function encodeWav(audioBuffer: AudioBuffer): ArrayBuffer {
   view.setUint32(28, sampleRate * blockAlign, true);
   view.setUint16(32, blockAlign, true);
   view.setUint16(34, bitsPerSample, true);
-  writeString(view, 36, 'data');
+  writeString(view, 36, "data");
   view.setUint32(40, dataSize, true);
 
   let offset = 44;
   for (let i = 0; i < numSamples; i++) {
     for (let ch = 0; ch < numChannels; ch++) {
       const sample = Math.max(-1, Math.min(1, channels[ch][i]));
-      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
       offset += 2;
     }
   }
