@@ -22,22 +22,20 @@
     "@tauri-apps/plugin-fs": "^2.5.0",
     "@tauri-apps/plugin-global-shortcut": "^2.3.1",
     "@tauri-apps/plugin-opener": "^2",
-    "framer-motion": "^12.38.0",
+    "framer-motion": "^13.2.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-dropzone": "^15.0.0",
+    "react-dropzone": "^20.1.1",
     "react-markdown": "^10.1.0",
-    "uuid": "^14.0.0",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
-    "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^6.0.3",
     "sharp": "^0.35.0",
-    "typescript": "~5.8.3",
+    "typescript": "^7.0.2",
     "vite": "^8.1.4"
   }
 }

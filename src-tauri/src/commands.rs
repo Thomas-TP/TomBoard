@@ -6,6 +6,7 @@ use std::io::{Read, Write};
 use std::process::Command;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
+use rodio::cpal;
 use cpal::traits::{DeviceTrait, HostTrait};
 
 #[cfg(target_os = "windows")]
@@ -75,8 +76,8 @@ pub fn get_waveform(file_path: String, bars: Option<usize>) -> Result<Vec<f32>, 
     let source = Decoder::new(BufReader::new(file))
         .map_err(|e| format!("Cannot decode audio: {}", e))?;
 
-    let channels = source.channels() as usize;
-    let samples: Vec<f32> = source.convert_samples::<f32>().collect();
+    let channels = source.channels().get() as usize;
+    let samples: Vec<f32> = source.collect();
     if samples.is_empty() {
         return Ok(vec![0.0; bar_count]);
     }
@@ -297,8 +298,15 @@ pub struct TtsVoiceInfo {
 }
 
 fn synthesize_onecore(voice_name: &str, text: &str, rate: i32, output_path: &str) -> Result<(), String> {
+    use std::future::IntoFuture;
     use windows::Media::SpeechSynthesis::SpeechSynthesizer;
     use windows::Storage::Streams::DataReader;
+
+    // windows-rs 0.62 dropped the blocking `IAsyncOperation::get()` in favor of
+    // `IntoFuture`/`.await`; this function is always invoked from inside
+    // `tokio::task::spawn_blocking`, so a nested `block_on` here is safe (it runs
+    // on a dedicated blocking-pool thread, not an async worker thread).
+    let rt = tokio::runtime::Handle::current();
 
     let synth = SpeechSynthesizer::new().map_err(|e| format!("Failed to create synthesizer: {}", e))?;
 
@@ -319,19 +327,23 @@ fn synthesize_onecore(voice_name: &str, text: &str, rate: i32, output_path: &str
 
     // Synthesize
     let hstring = windows::core::HSTRING::from(text);
-    let stream = synth.SynthesizeTextToStreamAsync(&hstring)
-        .map_err(|e| format!("Synthesis start failed: {}", e))?
-        .get()
-        .map_err(|e| format!("Synthesis failed: {}", e))?;
+    let stream = rt.block_on(
+        synth.SynthesizeTextToStreamAsync(&hstring)
+            .map_err(|e| format!("Synthesis start failed: {}", e))?
+            .into_future(),
+    )
+    .map_err(|e| format!("Synthesis failed: {}", e))?;
 
     // Read stream to bytes
     let size = stream.Size().map_err(|e| e.to_string())? as u32;
     let input_stream = stream.GetInputStreamAt(0).map_err(|e| e.to_string())?;
     let reader = DataReader::CreateDataReader(&input_stream).map_err(|e| e.to_string())?;
-    reader.LoadAsync(size)
-        .map_err(|e| e.to_string())?
-        .get()
-        .map_err(|e| e.to_string())?;
+    rt.block_on(
+        reader.LoadAsync(size)
+            .map_err(|e| e.to_string())?
+            .into_future(),
+    )
+    .map_err(|e| e.to_string())?;
 
     let mut bytes = vec![0u8; size as usize];
     reader.ReadBytes(&mut bytes).map_err(|e| e.to_string())?;
@@ -1672,10 +1684,13 @@ pub fn trim_audio(
 
     // Decode audio with rodio
     let decoder = rodio::Decoder::new(reader).map_err(|e| format!("Decode error: {}", e))?;
-    let sample_rate = decoder.sample_rate();
-    let channels = decoder.channels() as usize;
+    let sample_rate = decoder.sample_rate().get();
+    let channels = decoder.channels().get() as usize;
 
-    let samples: Vec<i16> = decoder.collect();
+    // Decoder now always yields f32 samples; convert to i16 PCM for the WAV output.
+    let samples: Vec<i16> = decoder
+        .map(|s| (s.clamp(-1.0, 1.0) * i16::MAX as f32).round() as i16)
+        .collect();
 
     let total_frames = samples.len() / channels;
     let start_frame = (trim_start * sample_rate as f64).round() as usize;

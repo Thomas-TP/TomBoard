@@ -1,5 +1,6 @@
+use rodio::cpal;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source};
+use rodio::{mixer::Mixer, Decoder, DeviceSinkBuilder, MixerDeviceSink, Player, Source};
 use std::collections::{HashMap, VecDeque};
 use std::fs::File;
 use std::io::BufReader;
@@ -56,10 +57,13 @@ pub enum AudioCommand {
     },
 }
 
-fn open_output_for_device(device_name: &str) -> Result<(OutputStream, OutputStreamHandle), String> {
+fn open_output_for_device(device_name: &str) -> Result<(MixerDeviceSink, Mixer), String> {
     println!("[AUDIO] open_output_for_device: '{}'", device_name);
     if device_name == "default" || device_name.is_empty() {
-        OutputStream::try_default().map_err(|e| format!("Failed to open default output: {}", e))
+        let sink = DeviceSinkBuilder::open_default_sink()
+            .map_err(|e| format!("Failed to open default output: {}", e))?;
+        let mixer = sink.mixer().clone();
+        Ok((sink, mixer))
     } else {
         let host = cpal::default_host();
         let devices = host.output_devices().map_err(|e| format!("Cannot list devices: {}", e))?;
@@ -69,8 +73,12 @@ fn open_output_for_device(device_name: &str) -> Result<(OutputStream, OutputStre
                 found_names.push(name.clone());
                 if name == device_name {
                     println!("[AUDIO] Found matching device: '{}'", name);
-                    return OutputStream::try_from_device(&dev)
-                        .map_err(|e| format!("Failed to open device '{}': {}", device_name, e));
+                    let sink = DeviceSinkBuilder::from_device(dev)
+                        .map_err(|e| format!("Failed to open device '{}': {}", device_name, e))?
+                        .open_stream()
+                        .map_err(|e| format!("Failed to open device '{}': {}", device_name, e))?;
+                    let mixer = sink.mixer().clone();
+                    return Ok((sink, mixer));
                 }
             }
         }
@@ -80,8 +88,8 @@ fn open_output_for_device(device_name: &str) -> Result<(OutputStream, OutputStre
 }
 
 struct SoundSinks {
-    primary: Sink,
-    secondary: Option<Sink>,
+    primary: Player,
+    secondary: Option<Player>,
 }
 
 pub struct AudioHandle {
@@ -97,11 +105,11 @@ impl AudioHandle {
         let (sender, receiver) = mpsc::channel::<AudioCommand>();
 
         thread::spawn(move || {
-            let (mut _stream, mut stream_handle) = OutputStream::try_default()
+            let (mut _stream, mut mixer) = open_output_for_device("default")
                 .expect("Failed to open audio output");
 
-            let mut _secondary_stream: Option<OutputStream> = None;
-            let mut secondary_handle: Option<OutputStreamHandle> = None;
+            let mut _secondary_stream: Option<MixerDeviceSink> = None;
+            let mut secondary_mixer: Option<Mixer> = None;
             let mut dual_output: bool = false;
 
             let mut sinks: HashMap<String, SoundSinks> = HashMap::new();
@@ -139,10 +147,7 @@ impl AudioHandle {
                                 Ok(s) => s,
                                 Err(e) => { eprintln!("Cannot decode audio {}: {}", file_path, e); continue; }
                             };
-                            let sink = match Sink::try_new(&stream_handle) {
-                                Ok(s) => s,
-                                Err(e) => { eprintln!("Cannot create sink: {}", e); continue; }
-                            };
+                            let sink = Player::connect_new(&mixer);
                             let effective_volume = volume * master_volume;
                             // When silent mode is on, mute primary (speakers) so only secondary (Discord) gets audio
                             sink.set_volume(if silent_mode { 0.0 } else { effective_volume });
@@ -163,7 +168,7 @@ impl AudioHandle {
 
                             // Secondary sink (dual output)
                             let secondary_sink = if dual_output {
-                                if let Some(ref sec_handle) = secondary_handle {
+                                if let Some(ref sec_mixer) = secondary_mixer {
                                     let file2 = match File::open(&file_path) {
                                         Ok(f) => f,
                                         Err(_) => { volumes.insert(id.clone(), volume); sinks.insert(id, SoundSinks { primary: sink, secondary: None }); continue; }
@@ -172,25 +177,21 @@ impl AudioHandle {
                                         Ok(s) => s,
                                         Err(_) => { volumes.insert(id.clone(), volume); sinks.insert(id, SoundSinks { primary: sink, secondary: None }); continue; }
                                     };
-                                    match Sink::try_new(sec_handle) {
-                                        Ok(s2) => {
-                                            s2.set_volume(effective_volume);
-                                            s2.set_speed(speed.max(0.1).min(3.0));
-                                            if looping {
-                                                if fi_dur.as_millis() > 0 {
-                                                    s2.append(source2.repeat_infinite().fade_in(fi_dur));
-                                                } else {
-                                                    s2.append(source2.repeat_infinite());
-                                                }
-                                            } else if fi_dur.as_millis() > 0 {
-                                                s2.append(source2.fade_in(fi_dur));
-                                            } else {
-                                                s2.append(source2);
-                                            }
-                                            Some(s2)
+                                    let s2 = Player::connect_new(sec_mixer);
+                                    s2.set_volume(effective_volume);
+                                    s2.set_speed(speed.max(0.1).min(3.0));
+                                    if looping {
+                                        if fi_dur.as_millis() > 0 {
+                                            s2.append(source2.repeat_infinite().fade_in(fi_dur));
+                                        } else {
+                                            s2.append(source2.repeat_infinite());
                                         }
-                                        Err(e) => { eprintln!("Secondary sink error: {}", e); None }
+                                    } else if fi_dur.as_millis() > 0 {
+                                        s2.append(source2.fade_in(fi_dur));
+                                    } else {
+                                        s2.append(source2);
                                     }
+                                    Some(s2)
                                 } else { None }
                             } else { None };
 
@@ -242,9 +243,9 @@ impl AudioHandle {
                             }
                             volumes.clear();
                             match open_output_for_device(&device_name) {
-                                Ok((new_stream, new_handle)) => {
+                                Ok((new_stream, new_mixer)) => {
                                     _stream = new_stream;
-                                    stream_handle = new_handle;
+                                    mixer = new_mixer;
                                     reply.send(Ok(())).ok();
                                 }
                                 Err(e) => {
@@ -262,20 +263,20 @@ impl AudioHandle {
                             if device_name.is_empty() || device_name == "none" {
                                 println!("[AUDIO] Clearing secondary device");
                                 _secondary_stream = None;
-                                secondary_handle = None;
+                                secondary_mixer = None;
                                 reply.send(Ok(())).ok();
                             } else {
                                 match open_output_for_device(&device_name) {
-                                    Ok((new_stream, new_handle)) => {
+                                    Ok((new_stream, new_mixer)) => {
                                         println!("[AUDIO] Secondary device opened successfully: '{}'", device_name);
                                         _secondary_stream = Some(new_stream);
-                                        secondary_handle = Some(new_handle);
+                                        secondary_mixer = Some(new_mixer);
                                         reply.send(Ok(())).ok();
                                     }
                                     Err(e) => {
                                         eprintln!("[AUDIO] Secondary device FAILED: {}", e);
                                         _secondary_stream = None;
-                                        secondary_handle = None;
+                                        secondary_mixer = None;
                                         reply.send(Err(e)).ok();
                                     }
                                 }
@@ -292,26 +293,22 @@ impl AudioHandle {
                             }
                         }
                         AudioCommand::PlayTestSecondary { reply } => {
-                            println!("[AUDIO] PlayTestSecondary - dual_output: {}, secondary_handle: {}", dual_output, secondary_handle.is_some());
-                            if let Some(ref sec_handle) = secondary_handle {
-                                match Sink::try_new(sec_handle) {
-                                    Ok(test_sink) => {
-                                        let source = rodio::source::SineWave::new(440.0)
-                                            .take_duration(std::time::Duration::from_millis(800))
-                                            .amplify(0.3 * master_volume);
-                                        test_sink.append(source);
-                                        // Remove old test if any
-                                        if let Some(old) = sinks.remove("__test__") {
-                                            old.primary.stop();
-                                            if let Some(s) = old.secondary { s.stop(); }
-                                        }
-                                        // Keep the sink alive with a dummy primary
-                                        let dummy = Sink::try_new(&stream_handle).unwrap();
-                                        sinks.insert("__test__".to_string(), SoundSinks { primary: dummy, secondary: Some(test_sink) });
-                                        reply.send(Ok(())).ok();
-                                    }
-                                    Err(e) => { reply.send(Err(format!("Impossible de jouer le test: {}", e))).ok(); }
+                            println!("[AUDIO] PlayTestSecondary - dual_output: {}, secondary_mixer: {}", dual_output, secondary_mixer.is_some());
+                            if let Some(ref sec_mixer) = secondary_mixer {
+                                let test_sink = Player::connect_new(sec_mixer);
+                                let source = rodio::source::SineWave::new(440.0)
+                                    .take_duration(std::time::Duration::from_millis(800))
+                                    .amplify(0.3 * master_volume);
+                                test_sink.append(source);
+                                // Remove old test if any
+                                if let Some(old) = sinks.remove("__test__") {
+                                    old.primary.stop();
+                                    if let Some(s) = old.secondary { s.stop(); }
                                 }
+                                // Keep the sink alive with a dummy primary
+                                let dummy = Player::connect_new(&mixer);
+                                sinks.insert("__test__".to_string(), SoundSinks { primary: dummy, secondary: Some(test_sink) });
+                                reply.send(Ok(())).ok();
                             } else {
                                 reply.send(Err("Aucun périphérique secondaire configuré".into())).ok();
                             }
@@ -471,7 +468,7 @@ pub fn build_mic_passthrough(
     let buf_r = Arc::clone(&buffer);
 
     // Voice FX processor (shared so it can be updated from commands)
-    let voice_fx = crate::voice_fx::create_shared_processor(in_sr.0 as f32);
+    let voice_fx = crate::voice_fx::create_shared_processor(in_sr as f32);
     let fx_clone = Arc::clone(&voice_fx);
 
     // Build input stream (f32) — applies voice FX before writing to buffer
