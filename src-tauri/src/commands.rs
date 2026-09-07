@@ -6,6 +6,7 @@ use std::io::{Read, Write};
 use std::process::Command;
 #[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
+use rodio::cpal;
 use cpal::traits::{DeviceTrait, HostTrait};
 
 #[cfg(target_os = "windows")]
@@ -75,8 +76,8 @@ pub fn get_waveform(file_path: String, bars: Option<usize>) -> Result<Vec<f32>, 
     let source = Decoder::new(BufReader::new(file))
         .map_err(|e| format!("Cannot decode audio: {}", e))?;
 
-    let channels = source.channels() as usize;
-    let samples: Vec<f32> = source.convert_samples::<f32>().collect();
+    let channels = source.channels().get() as usize;
+    let samples: Vec<f32> = source.collect();
     if samples.is_empty() {
         return Ok(vec![0.0; bar_count]);
     }
@@ -1683,10 +1684,13 @@ pub fn trim_audio(
 
     // Decode audio with rodio
     let decoder = rodio::Decoder::new(reader).map_err(|e| format!("Decode error: {}", e))?;
-    let sample_rate = decoder.sample_rate();
-    let channels = decoder.channels() as usize;
+    let sample_rate = decoder.sample_rate().get();
+    let channels = decoder.channels().get() as usize;
 
-    let samples: Vec<i16> = decoder.collect();
+    // Decoder now always yields f32 samples; convert to i16 PCM for the WAV output.
+    let samples: Vec<i16> = decoder
+        .map(|s| (s.clamp(-1.0, 1.0) * i16::MAX as f32).round() as i16)
+        .collect();
 
     let total_frames = samples.len() / channels;
     let start_frame = (trim_start * sample_rate as f64).round() as usize;
