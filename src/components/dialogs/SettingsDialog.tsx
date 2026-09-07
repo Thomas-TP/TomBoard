@@ -288,6 +288,37 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     }
   }, [open, data]);
 
+  // `categories` is derived fresh every render, so it's read from a ref inside
+  // the drop handler instead of being a dependency (which would tear down and
+  // resubscribe the monitor on every render). These hooks must stay above the
+  // `if (!settings) return null` below - React requires the same hooks to run
+  // on every render regardless of `settings` still being null on first mount.
+  const categoriesRef = useRef(categories);
+  useEffect(() => {
+    categoriesRef.current = categories;
+  });
+
+  useEffect(() => {
+    return monitorForElements({
+      canMonitor: ({ source }) => source.data.type === CATEGORY_DRAG_TYPE,
+      onDrop({ source, location }) {
+        const target = location.current.dropTargets[0];
+        if (!target) return;
+        const draggedId = source.data.categoryId as string;
+        const targetId = target.data.categoryId as string;
+        if (draggedId === targetId) return;
+        const currentCategories = categoriesRef.current;
+        const oldIndex = currentCategories.findIndex((c) => c.id === draggedId);
+        const newIndex = currentCategories.findIndex((c) => c.id === targetId);
+        if (oldIndex === -1 || newIndex === -1) return;
+        const reordered = [...currentCategories];
+        const [moved] = reordered.splice(oldIndex, 1);
+        reordered.splice(newIndex, 0, moved);
+        reorderCategories(reordered.map((c) => c.id));
+      },
+    });
+  }, [reorderCategories]);
+
   if (!settings) return null;
 
   const update = (patch: Partial<AppSettings>) =>
@@ -372,34 +403,6 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const handleDeleteCategory = async (id: string) => {
     await deleteCategory(id);
   };
-  // `categories` is derived fresh every render, so it's read from a ref inside
-  // the drop handler instead of being a dependency (which would tear down and
-  // resubscribe the monitor on every render).
-  const categoriesRef = useRef(categories);
-  useEffect(() => {
-    categoriesRef.current = categories;
-  });
-
-  useEffect(() => {
-    return monitorForElements({
-      canMonitor: ({ source }) => source.data.type === CATEGORY_DRAG_TYPE,
-      onDrop({ source, location }) {
-        const target = location.current.dropTargets[0];
-        if (!target) return;
-        const draggedId = source.data.categoryId as string;
-        const targetId = target.data.categoryId as string;
-        if (draggedId === targetId) return;
-        const currentCategories = categoriesRef.current;
-        const oldIndex = currentCategories.findIndex((c) => c.id === draggedId);
-        const newIndex = currentCategories.findIndex((c) => c.id === targetId);
-        if (oldIndex === -1 || newIndex === -1) return;
-        const reordered = [...currentCategories];
-        const [moved] = reordered.splice(oldIndex, 1);
-        reordered.splice(newIndex, 0, moved);
-        reorderCategories(reordered.map((c) => c.id));
-      },
-    });
-  }, [reorderCategories]);
 
   const handleAddProfile = async () => {
     const name = newProfileName.trim();
