@@ -1,6 +1,6 @@
 [package]
 name = "tomboard"
-version = "0.3.7"
+version = "0.3.8"
 description = "Le soundboard ultime pour Windows"
 authors = ["Thomas-TP"]
 edition = "2021"
