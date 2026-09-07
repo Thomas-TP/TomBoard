@@ -37,8 +37,6 @@ interface SoundCardProps {
   compact?: boolean;
 }
 
-const MotionCard = motion.create(Card);
-
 export default function SoundCard({ sound, onContextMenu, onEdit, compact }: SoundCardProps) {
   const playSound = useAppStore((s) => s.playSound);
   const toggleFavorite = useAppStore((s) => s.toggleFavorite);
@@ -117,35 +115,41 @@ export default function SoundCard({ sound, onContextMenu, onEdit, compact }: Sou
 
   return (
     <div ref={cardRef} style={{ position: "relative", opacity: isDragging ? 0.4 : 1 }}>
-      <MotionCard
+      {/* motion.div wraps the plain Card rather than using motion.create(Card): wrapping a
+          non-DOM component with motion.create() breaks pragmatic-drag-and-drop's native
+          dragenter/dragover detection on this element (verified independently of MUI - a
+          plain motion.create("div") does not have this problem). */}
+      <motion.div
         layout={!isDragging}
         initial={{ opacity: 0, scale: 0.92, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.85, y: -12 }}
         whileHover={isDragging ? undefined : { scale: 1.04, y: -4, transition: { duration: 0.15 } }}
         whileTap={isDragging ? undefined : { scale: 0.94 }}
-        onContextMenu={(e: React.MouseEvent) => {
-          e.preventDefault();
-          onContextMenu(sound, { top: e.clientY, left: e.clientX });
-        }}
-        onDoubleClick={() => onEdit(sound)}
         transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-        sx={{
-          position: "relative",
-          overflow: "visible",
-          bgcolor: isPlaying
-            ? (theme) =>
-                theme.palette.mode === "dark"
-                  ? "rgba(124, 92, 252, 0.15)"
-                  : "rgba(124, 92, 252, 0.08)"
-            : "background.paper",
-          borderColor: isPlaying ? "primary.main" : "divider",
-          transition: "background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease",
-          ...(isPlaying && {
-            boxShadow: "0 0 20px rgba(124, 92, 252, 0.15), inset 0 0 20px rgba(124, 92, 252, 0.05)",
-          }),
-        }}
       >
+        <Card
+          onContextMenu={(e: React.MouseEvent) => {
+            e.preventDefault();
+            onContextMenu(sound, { top: e.clientY, left: e.clientX });
+          }}
+          onDoubleClick={() => onEdit(sound)}
+          sx={{
+            position: "relative",
+            overflow: "visible",
+            bgcolor: isPlaying
+              ? (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "rgba(124, 92, 252, 0.15)"
+                    : "rgba(124, 92, 252, 0.08)"
+              : "background.paper",
+            borderColor: isPlaying ? "primary.main" : "divider",
+            transition: "background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease",
+            ...(isPlaying && {
+              boxShadow: "0 0 20px rgba(124, 92, 252, 0.15), inset 0 0 20px rgba(124, 92, 252, 0.05)",
+            }),
+          }}
+        >
         {/* Favorite button */}
         <IconButton
           size="small"
@@ -339,7 +343,8 @@ export default function SoundCard({ sound, onContextMenu, onEdit, compact }: Sou
             </Typography>
           </Box>
         )}
-      </MotionCard>
+        </Card>
+      </motion.div>
       {closestEdge && <DropIndicator edge={closestEdge} gap="8px" />}
     </div>
   );
